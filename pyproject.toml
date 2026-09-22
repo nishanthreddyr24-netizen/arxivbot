@@ -1,0 +1,25 @@
+[project]
+name = "arxivbot"
+version = "0.1.0"
+description = "Reconstruct implementation scaffolding from arXiv papers"
+requires-python = ">=3.11"
+license = "MIT"
+readme = "README.md"
+dependencies = [
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+# The model layer is not written yet; these arrive with it.
+llm = ["litellm>=1.100", "pydantic>=2.9"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+arxivbot = "arxivbot.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/arxivbot"]
