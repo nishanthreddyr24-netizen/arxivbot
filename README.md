@@ -79,9 +79,30 @@ Print a section's text:
 arxivbot inspect 2006.11239 --show "diffusion" --chars 3000
 ```
 
-Accepts bare ids, versioned ids, and `arxiv.org/abs/...` URLs. Downloads are
-cached under `~/.cache/arxivbot` (override with `ARXIVBOT_CACHE`) and requests
-are throttled to arXiv's requested rate.
+Accepts bare ids, versioned ids, and `arxiv.org/abs/...` URLs. Requests are
+throttled to the rate arXiv asks of automated clients.
+
+### Caching
+
+Every download is cached locally so repeated runs cost nothing and do not hit
+arXiv again. The cache lives on your own machine, per user — nothing is shared
+or uploaded:
+
+| Platform | Location |
+|---|---|
+| Windows | `%LOCALAPPDATA%\arxivbot\Cache` |
+| macOS | `~/Library/Caches/arxivbot` |
+| Linux | `$XDG_CACHE_HOME/arxivbot`, else `~/.cache/arxivbot` |
+
+Set `ARXIVBOT_CACHE` to override. Inspect or empty it with:
+
+```bash
+arxivbot cache            # where it is, how big, what is in it
+arxivbot cache --clear    # delete everything cached
+```
+
+Papers average a few MB each and nothing is evicted automatically, so run
+`--clear` if it grows beyond what you want to keep.
 
 ## Design
 
