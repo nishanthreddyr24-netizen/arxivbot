@@ -282,10 +282,17 @@ class Handler(BaseHTTPRequestHandler):
 
         selection = select_components(hit.spec, request)
         if selection.empty:
+            # Say only what is actually known. The paper may well cover this
+            # and the extraction may simply have missed it - claiming the
+            # paper lacks something, on the strength of our own incomplete
+            # spec, is the exact failure this project exists to avoid.
             return self._json(
                 {
-                    "error": "Nothing in this paper matches that. It covers: "
+                    "error": "No component in the extracted spec matches that. "
+                    "It found: "
                     + ", ".join(c.name for c in hit.spec.components)
+                    + ". If the paper does cover this, the extraction missed "
+                    "it - re-run with a higher component limit."
                 },
                 404,
             )
@@ -333,7 +340,7 @@ class Handler(BaseHTTPRequestHandler):
         )
 
 
-def serve(port: int = 8000, *, open_browser: bool = True, max_components: int = 6) -> None:
+def serve(port: int = 8000, *, open_browser: bool = True, max_components: int = 10) -> None:
     """Run the local front end until interrupted."""
     httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     httpd.max_components = max_components  # type: ignore[attr-defined]

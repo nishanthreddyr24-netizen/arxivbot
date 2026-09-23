@@ -144,8 +144,13 @@ def _ask(args: argparse.Namespace) -> int:
 
     selection = select(hit.spec, args.query)
     if selection.empty:
-        print(f"nothing in this paper matches {args.query!r}.", file=sys.stderr)
-        print("it covers:", ", ".join(suggest(hit.spec)), file=sys.stderr)
+        print(f"no extracted component matches {args.query!r}.", file=sys.stderr)
+        print("the spec found:", ", ".join(suggest(hit.spec)), file=sys.stderr)
+        print(
+            "if the paper does cover it, the extraction missed it - re-run "
+            f"with: arxivbot spec {args.arxiv_id} --refresh --max-components 12",
+            file=sys.stderr,
+        )
         return 1
 
     if text := banner(check(hit.spec, args.query, selection.components)):
@@ -222,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     spec.add_argument("arxiv_id", help="arXiv id or URL")
     spec.add_argument("--refresh", action="store_true", help="re-extract even if cached")
     spec.add_argument("--model", help="override the model, e.g. gemini-3.6-flash")
-    spec.add_argument("--max-components", type=int, default=8)
+    spec.add_argument("--max-components", type=int, default=10)
     spec.set_defaults(func=_spec)
 
     ask = sub.add_parser("ask", help="ask a paper's spec about one part of it")
@@ -233,7 +238,7 @@ def main(argv: list[str] | None = None) -> int:
     web = sub.add_parser("serve", help="open the local web interface")
     web.add_argument("--port", type=int, default=8000)
     web.add_argument("--no-open", action="store_true", help="do not open a browser")
-    web.add_argument("--max-components", type=int, default=6)
+    web.add_argument("--max-components", type=int, default=10)
     web.set_defaults(func=_serve)
 
     cache = sub.add_parser("cache", help="show or clear the downloaded-paper cache")
