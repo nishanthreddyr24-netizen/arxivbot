@@ -80,6 +80,17 @@ Print a section's text:
 arxivbot inspect 2006.11239 --show "diffusion" --chars 3000
 ```
 
+### The web interface
+
+```bash
+arxivbot serve
+```
+
+Opens a local page at `127.0.0.1:8000`: paste an arXiv id, watch the stages
+run, then click any extracted value to see the sentence in the paper that
+backs it. Runs entirely on your machine against your own key — it talks to
+arXiv and your model provider and nothing else.
+
 ### Extracting a spec
 
 This is the part that needs a model. Set `GEMINI_API_KEY` in your environment or

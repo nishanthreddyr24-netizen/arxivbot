@@ -175,6 +175,13 @@ def _ask(args: argparse.Namespace) -> int:
     return 0
 
 
+def _serve(args: argparse.Namespace) -> int:
+    from arxivbot.server import serve
+
+    serve(port=args.port, open_browser=not args.no_open, max_components=args.max_components)
+    return 0
+
+
 def _cache(args: argparse.Namespace) -> int:
     from arxivbot.ingest.fetch import cache_dir, cache_entries, cache_size
 
@@ -222,6 +229,12 @@ def main(argv: list[str] | None = None) -> int:
     ask.add_argument("arxiv_id", help="arXiv id or URL")
     ask.add_argument("query", help="what you want, e.g. 'the attention block'")
     ask.set_defaults(func=_ask)
+
+    web = sub.add_parser("serve", help="open the local web interface")
+    web.add_argument("--port", type=int, default=8000)
+    web.add_argument("--no-open", action="store_true", help="do not open a browser")
+    web.add_argument("--max-components", type=int, default=6)
+    web.set_defaults(func=_serve)
 
     cache = sub.add_parser("cache", help="show or clear the downloaded-paper cache")
     cache.add_argument("--clear", action="store_true", help="delete every cached paper")

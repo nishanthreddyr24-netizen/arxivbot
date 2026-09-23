@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>arxivbot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#FBFAF8; --surface:#FFF; --sunk:#F4F1ED;
+  --ink:#17120F; --ink-soft:#59514C; --ink-faint:#8B817A;
+  --rule:#E2DCD6; --rule-strong:#CFC6BD;
+  --accent:#B31B1B; --accent-ink:#7E1212;
+  --accent-tint:#F6E7E4; --accent-edge:#E4BFBA; --lit:#FBE3AE;
+  color-scheme:light;
+  --f-display:"Newsreader",Georgia,serif;
+  --f-body:"Source Sans 3",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#141110; --surface:#1B1716; --sunk:#211C1A;
+  --ink:#F3EEEA; --ink-soft:#B5ABA4; --ink-faint:#877C75;
+  --rule:#332B28; --rule-strong:#463C38;
+  --accent:#E86B60; --accent-ink:#F2A099;
+  --accent-tint:#331F1C; --accent-edge:#5A322D; --lit:#4A3A12;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --ground:#141110; --surface:#1B1716; --sunk:#211C1A;
+  --ink:#F3EEEA; --ink-soft:#B5ABA4; --ink-faint:#877C75;
+  --rule:#332B28; --rule-strong:#463C38;
+  --accent:#E86B60; --accent-ink:#F2A099;
+  --accent-tint:#331F1C; --accent-edge:#5A322D; --lit:#4A3A12;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:var(--f-body); font-size:17px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.wrap{max-width:60rem;margin:0 auto;padding-inline:20px}
+a{color:var(--accent);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code{font-family:var(--f-mono);font-size:.88em}
+[hidden]{display:none!important}
+
+/* masthead */
+.mast{border-bottom:1px solid var(--rule)}
+.mast-in{display:flex;align-items:baseline;gap:14px;padding-block:16px}
+.logo{font-family:var(--f-mono);font-weight:600;font-size:1.05rem;letter-spacing:-.02em;margin-right:auto}
+.logo b{color:var(--accent)}
+.mast a{font-size:.85rem}
+
+/* search */
+.hero{padding-block:clamp(40px,9vw,76px) 32px;text-align:left}
+h1{
+  font-family:var(--f-display);font-weight:500;line-height:1.14;margin:0;
+  font-size:clamp(1.9rem,5.4vw,2.9rem);letter-spacing:-.018em;text-wrap:balance;max-width:20ch
+}
+h1 em{font-style:italic;color:var(--accent)}
+form{display:flex;gap:10px;margin-top:30px;flex-wrap:wrap}
+input[type=text]{
+  flex:1 1 20rem;min-width:0;font-family:var(--f-mono);font-size:1rem;
+  padding:14px 16px;background:var(--surface);color:var(--ink);
+  border:1px solid var(--rule-strong);border-radius:3px
+}
+input[type=text]:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-tint)}
+button.go{
+  font-family:var(--f-body);font-size:1rem;font-weight:600;padding:14px 26px;
+  background:var(--accent);color:#fff;border:1px solid var(--accent);
+  border-radius:3px;cursor:pointer
+}
+button.go:hover{background:var(--accent-ink);border-color:var(--accent-ink)}
+button.go:disabled{opacity:.5;cursor:default}
+.tries{margin-top:12px;font-size:.85rem;color:var(--ink-faint)}
+.tries button{
+  background:none;border:0;padding:0 2px;font:inherit;color:var(--accent);
+  cursor:pointer;text-decoration:underline;text-underline-offset:3px
+}
+
+/* progress */
+.stages{margin-top:26px;border-top:2px solid var(--accent);font-family:var(--f-mono);font-size:.84rem}
+.stage{display:flex;gap:12px;padding-block:9px;border-bottom:1px solid var(--rule);color:var(--ink-faint)}
+.stage .dot{flex:none;width:1rem;color:var(--rule-strong)}
+.stage.on{color:var(--ink)}
+.stage.on .dot{color:var(--accent)}
+.stage.done .dot{color:var(--accent)}
+.stage.done{color:var(--ink-soft)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.stage.on .dot{animation:pulse 1.2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.stage.on .dot{animation:none}}
+
+.err{
+  margin-top:24px;padding:14px 16px;border:1px solid var(--accent-edge);
+  border-left:3px solid var(--accent);background:var(--accent-tint);font-size:.94rem
+}
+
+/* results */
+.paper{padding-block:34px 4px;border-top:1px solid var(--rule)}
+.paper h2{font-family:var(--f-display);font-weight:600;font-size:1.5rem;margin:0;line-height:1.25;text-wrap:balance}
+.paper .meta{font-size:.85rem;color:var(--ink-faint);margin-top:6px;font-family:var(--f-mono)}
+.paper .sum{margin-top:14px;color:var(--ink-soft);max-width:44rem}
+
+.scoreline{
+  display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:20px;padding-block:14px;
+  border-block:1px solid var(--rule);font-family:var(--f-mono);font-size:.8rem;color:var(--ink-faint)
+}
+.scoreline b{color:var(--ink);font-weight:600}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,20rem);gap:26px;align-items:start;padding-block:26px}
+@media (max-width:840px){.grid{grid-template-columns:1fr}}
+.lbl{
+  font-family:var(--f-mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-faint);padding-bottom:9px;border-bottom:1px solid var(--rule-strong);margin-bottom:0
+}
+
+.comp{padding:15px 0 13px;border-bottom:1px solid var(--rule)}
+.comp-name{font-family:var(--f-display);font-size:1.08rem;font-weight:600}
+.comp-role{font-size:.9rem;color:var(--ink-soft);margin-top:3px}
+.comp-from{font-size:.78rem;color:var(--ink-faint);margin-top:4px;font-family:var(--f-mono)}
+.claims{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.claim{
+  display:inline-flex;align-items:baseline;gap:7px;font-family:var(--f-mono);font-size:.82rem;
+  background:none;border:0;padding:4px 8px;color:var(--ink);cursor:pointer;border-radius:3px
+}
+.claim:hover,.claim[aria-pressed="true"]{background:var(--accent-tint)}
+.claim .mk{font-weight:600}
+.claim.v .mk{color:var(--accent)}
+.claim.u .mk{color:var(--ink-faint)}
+.claim .txt{border-bottom:2px solid var(--accent);padding-bottom:1px}
+.claim.u .txt{border-bottom:2px dashed var(--rule-strong);color:var(--ink-soft)}
+.eq{font-family:var(--f-mono);font-size:.78rem;color:var(--ink-faint);margin-top:9px;overflow-x:auto;white-space:nowrap}
+
+/* evidence rail */
+.rail{position:sticky;top:16px}
+.evidence{
+  background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--accent);
+  padding:15px 16px;font-size:.9rem;min-height:9rem
+}
+.evidence.empty{border-left-color:var(--rule-strong);color:var(--ink-faint);font-style:italic}
+.evidence .where{
+  font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:9px
+}
+.evidence q{quotes:none;display:block;background:var(--lit);padding:9px 11px;
+  font-family:var(--f-mono);font-size:.8rem;line-height:1.7;color:var(--ink);
+  border-radius:2px;overflow-wrap:anywhere}
+.evidence .note{margin-top:10px;color:var(--ink-soft);font-size:.85rem}
+
+/* gaps */
+.gap{display:grid;grid-template-columns:6.5rem 1fr;gap:12px;padding-block:12px;border-bottom:1px solid var(--rule);align-items:baseline}
+@media (max-width:560px){.gap{grid-template-columns:1fr;gap:3px}}
+.sev{font-family:var(--f-mono);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 0 2px 9px;border-left:3px solid var(--accent);color:var(--accent)}
+.sev.significant{border-left-color:var(--accent);opacity:.75}
+.sev.minor{border-left-color:var(--rule-strong);color:var(--ink-faint)}
+.gap p{margin:0;font-size:.94rem}
+.gap .why{color:var(--ink-faint);font-size:.84rem;margin-top:2px}
+
+/* ask */
+.ask{padding-block:28px 40px;border-top:1px solid var(--rule)}
+.ask form{margin-top:16px}
+.ask input[type=text]{font-family:var(--f-body)}
+.banner{
+  margin-top:18px;font-family:var(--f-mono);font-size:.82rem;line-height:1.7;
+  white-space:pre-wrap;padding:14px 16px;border:1px solid var(--accent-edge);
+  background:var(--accent-tint);color:var(--accent-ink);border-left:3px solid var(--accent)
+}
+.banner.ok{background:var(--sunk);border-color:var(--rule);border-left-color:var(--rule-strong);color:var(--ink-soft)}
+.picked{margin-top:16px}
+.picked .why{font-family:var(--f-mono);font-size:.74rem;color:var(--ink-faint)}
+
+footer{border-top:1px solid var(--rule);padding-block:24px 40px;font-size:.84rem;color:var(--ink-faint)}
+footer p{margin:0 0 .4em}
+</style>
+</head>
+<body>
+
+<header class="mast"><div class="wrap mast-in">
+  <span class="logo">arxiv<b>bot</b></span>
+  <a href="https://github.com/nishanthreddyr24-netizen/arxivbot">GitHub</a>
+</div></header>
+
+<main>
+<div class="wrap hero">
+  <h1>What does this paper actually say — and what does it <em>leave out</em>?</h1>
+
+  <form id="f">
+    <input type="text" id="pid" name="pid" placeholder="1706.03762" autocomplete="off"
+           spellcheck="false" aria-label="arXiv id or URL">
+    <button class="go" id="go" type="submit">Extract</button>
+  </form>
+  <p class="tries">Try
+    <button type="button" data-id="1706.03762">Attention Is All You Need</button> ·
+    <button type="button" data-id="2006.11239">Denoising Diffusion</button> ·
+    <button type="button" data-id="2106.09685">LoRA</button>
+  </p>
+
+  <div class="stages" id="stages" hidden>
+    <div class="stage" data-s="fetch"><span class="dot">•</span><span>fetching LaTeX source from arXiv</span></div>
+    <div class="stage" data-s="parse"><span class="dot">•</span><span>splicing \input, cutting into sections</span></div>
+    <div class="stage" data-s="inventory"><span class="dot">•</span><span>reading the methodology</span></div>
+    <div class="stage" data-s="detail"><span class="dot">•</span><span>extracting components and verifying quotes</span></div>
+    <div class="stage" data-s="unknowns"><span class="dot">•</span><span>looking for what the paper never says</span></div>
+  </div>
+
+  <div class="err" id="err" hidden></div>
+</div>
+
+<div class="wrap" id="out" hidden>
+  <div class="paper">
+    <h2 id="title"></h2>
+    <p class="meta" id="meta"></p>
+    <p class="sum" id="sum"></p>
+    <div class="scoreline" id="score"></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <p class="lbl">Components</p>
+      <div id="comps"></div>
+      <p class="lbl" style="margin-top:34px">The paper does not specify</p>
+      <div id="gaps"></div>
+    </div>
+    <div class="rail">
+      <p class="lbl">Evidence</p>
+      <div class="evidence empty" id="ev" role="status" aria-live="polite">
+        Select any value to see the sentence in the paper that backs it.
+      </div>
+    </div>
+  </div>
+
+  <div class="ask">
+    <p class="lbl">Ask for one part</p>
+    <form id="af">
+      <input type="text" id="q" name="q" placeholder="the attention block"
+             autocomplete="off" aria-label="what you want">
+      <button class="go" type="submit">Ask</button>
+    </form>
+    <div id="ans"></div>
+  </div>
+</div>
+</main>
+
+<footer class="wrap">
+  <p>Running locally against your own key. Nothing is uploaded.</p>
+  <p>MIT · <a href="https://github.com/nishanthreddyr24-netizen/arxivbot">source</a></p>
+</footer>
+
+<script>
+var S = { spec:null, id:null };
+var $ = function(id){ return document.getElementById(id); };
+var esc = function(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
+
+function stage(name, state){
+  var el = document.querySelector('.stage[data-s="'+name+'"]');
+  if (el) el.className = 'stage ' + state;
+}
+function resetStages(){
+  ['fetch','parse','inventory','detail','unknowns'].forEach(function(s){ stage(s,''); });
+}
+
+$('f').addEventListener('submit', function(e){ e.preventDefault(); run($('pid').value.trim()); });
+Array.prototype.forEach.call(document.querySelectorAll('.tries button'), function(b){
+  b.addEventListener('click', function(){ $('pid').value = b.dataset.id; run(b.dataset.id); });
+});
+
+function run(id){
+  if (!id) return;
+  $('err').hidden = true; $('out').hidden = true;
+  $('stages').hidden = false; resetStages(); stage('fetch','on');
+  $('go').disabled = true; $('go').textContent = 'Working…';
+
+  fetch('/api/extract', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ id: id })
+  }).then(function(r){ return r.json(); }).then(function(j){
+    if (j.error) throw new Error(j.error);
+    poll(j.job);
+  }).catch(fail);
+}
+
+function poll(job){
+  fetch('/api/job?id=' + encodeURIComponent(job))
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      (j.done_stages || []).forEach(function(s){ stage(s,'done'); });
+      if (j.stage) stage(j.stage,'on');
+      if (j.state === 'error') return fail(new Error(j.error));
+      if (j.state === 'done'){
+        ['fetch','parse','inventory','detail','unknowns'].forEach(function(s){ stage(s,'done'); });
+        return show(j.spec, j.report);
+      }
+      setTimeout(function(){ poll(job); }, 900);
+    }).catch(fail);
+}
+
+function fail(e){
+  $('stages').hidden = true;
+  $('err').hidden = false;
+  $('err').textContent = e.message || String(e);
+  $('go').disabled = false; $('go').textContent = 'Extract';
+}
+
+function show(spec, report){
+  S.spec = spec; S.id = spec.arxiv_id;
+  $('go').disabled = false; $('go').textContent = 'Extract';
+  setTimeout(function(){ $('stages').hidden = true; }, 600);
+
+  $('title').textContent = spec.title;
+  $('meta').textContent = spec.arxiv_id + (spec.official_repo ? '  ·  ' + spec.official_repo : '');
+  $('sum').textContent = spec.summary || '';
+
+  var c = spec.counts;
+  $('score').innerHTML =
+    '<span><b>' + c.stated + '</b> verified</span>' +
+    '<span><b>' + (c.guess + c.conventional) + '</b> unverified</span>' +
+    '<span><b>' + spec.unknowns.length + '</b> gaps</span>' +
+    '<span><b>' + report.calls + '</b> model calls</span>' +
+    (report.quote_accuracy != null
+      ? '<span><b>' + Math.round(report.quote_accuracy*100) + '%</b> quotes located</span>' : '');
+
+  $('comps').innerHTML = spec.components.map(function(comp, ci){
+    var claims = comp.hyperparameters.map(function(h, hi){
+      var v = h.confidence === 'stated' && h.provenance;
+      return '<button class="claim ' + (v?'v':'u') + '" data-c="'+ci+'" data-h="'+hi+'" aria-pressed="false">' +
+             '<span class="mk">' + (v?'&lowast;':'?') + '</span>' +
+             '<span class="txt">' + esc(h.name) + (h.value!=null?' = '+esc(h.value):'') + '</span></button>';
+    }).join('');
+    var eqs = comp.equations.slice(0,2).map(function(e){
+      return '<div class="eq">' + esc(e.latex) + '</div>'; }).join('');
+    return '<div class="comp"><div class="comp-name">' + esc(comp.name) + '</div>' +
+      '<div class="comp-role">' + esc(comp.role) + '</div>' +
+      (comp.depends_on && comp.depends_on.length
+        ? '<div class="comp-from">built from ' + esc(comp.depends_on.join(', ')) + '</div>' : '') +
+      (claims ? '<div class="claims">' + claims + '</div>' : '') + eqs + '</div>';
+  }).join('') || '<p class="comp-role">No components recovered.</p>';
+
+  var order = { blocking:0, significant:1, minor:2 };
+  $('gaps').innerHTML = spec.unknowns.slice().sort(function(a,b){
+    return order[a.severity] - order[b.severity];
+  }).map(function(u){
+    return '<div class="gap"><span class="sev ' + u.severity + '">' + u.severity + '</span>' +
+      '<div><p>' + esc(u.question) + '</p>' +
+      '<p class="why">' + esc(u.why_it_matters) + '</p></div></div>';
+  }).join('') || '<p class="comp-role">None reported.</p>';
+
+  Array.prototype.forEach.call(document.querySelectorAll('.claim'), function(b){
+    b.addEventListener('click', function(){ evidence(b); });
+  });
+
+  $('ev').className = 'evidence empty';
+  $('ev').textContent = 'Select any value to see the sentence in the paper that backs it.';
+  $('ans').innerHTML = '';
+  $('out').hidden = false;
+  $('out').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function evidence(btn){
+  var was = btn.getAttribute('aria-pressed') === 'true';
+  Array.prototype.forEach.call(document.querySelectorAll('.claim'), function(b){
+    b.setAttribute('aria-pressed','false'); });
+  if (was){
+    $('ev').className = 'evidence empty';
+    $('ev').textContent = 'Select any value to see the sentence in the paper that backs it.';
+    return;
+  }
+  btn.setAttribute('aria-pressed','true');
+  var h = S.spec.components[btn.dataset.c].hyperparameters[btn.dataset.h];
+  if (h.provenance){
+    $('ev').className = 'evidence';
+    $('ev').innerHTML = '<div class="where">' + esc(h.provenance.section) + '</div>' +
+      '<q>' + esc(h.provenance.quote) + '</q>' +
+      '<p class="note">Located in the source, so the claim stands as stated.</p>';
+  } else {
+    $('ev').className = 'evidence empty';
+    $('ev').innerHTML = '<div class="where" style="color:inherit">not verified</div>' +
+      'No supporting sentence was found in the paper. The value is kept, but the claim ' +
+      'that this paper states it is dropped.';
+  }
+}
+
+$('af').addEventListener('submit', function(e){
+  e.preventDefault();
+  var q = $('q').value.trim();
+  if (!q || !S.id) return;
+  fetch('/api/ask?id=' + encodeURIComponent(S.id) + '&q=' + encodeURIComponent(q))
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if (j.error){ $('ans').innerHTML = '<div class="banner">' + esc(j.error) + '</div>'; return; }
+      var html = '';
+      if (j.banner) html += '<div class="banner' + (j.conflict ? '' : ' ok') + '">' + esc(j.banner) + '</div>';
+      html += j.matched.map(function(m){
+        return '<div class="picked"><div class="comp-name">' + esc(m.name) + '</div>' +
+          '<div class="why">' + esc(m.reason) + '</div>' +
+          '<div class="comp-role">' + esc(m.role) + '</div></div>';
+      }).join('');
+      if (j.dependencies.length)
+        html += '<p class="comp-from" style="margin-top:12px">also needs ' +
+                esc(j.dependencies.join(', ')) + '</p>';
+      $('ans').innerHTML = html || '<div class="banner ok">Nothing in this paper matches that.</div>';
+    });
+});
+</script>
+</body>
+</html>
