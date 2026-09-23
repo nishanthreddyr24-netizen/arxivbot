@@ -7,11 +7,12 @@ license = "MIT"
 readme = "README.md"
 dependencies = [
     "httpx>=0.27",
+    "pydantic>=2.9",
 ]
 
 [project.optional-dependencies]
-# The model layer is not written yet; these arrive with it.
-llm = ["litellm>=1.100", "pydantic>=2.9"]
+# The model layer is not written yet; this arrives with it.
+llm = ["litellm>=1.100"]
 dev = ["pytest>=8.0"]
 
 [project.scripts]
