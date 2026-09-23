@@ -259,7 +259,12 @@ pre#code{
 </div>
 
 <script>
-var S = { id:null, spec:null, busy:false };
+var S = { id:null, spec:null, busy:false, localPdf:false };
+
+fetch('/api/config').then(function(r){return r.json();}).then(function(c){
+  S.localPdf = !!c.local_pdf;
+  if (c.model) document.getElementById('model').textContent = c.model;
+}).catch(function(){});
 var $ = function(i){ return document.getElementById(i); };
 function esc(s){ return String(s==null?"":s).replace(/[&<>]/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]; }); }
@@ -285,35 +290,31 @@ function open(id){
   $('go').disabled = true; $('go').textContent = '…';
   $('now').textContent = 'extracting ' + id;
 
-  /* The PDF loads independently of extraction, but the first fetch of an
-     uncached paper takes a while - say so rather than showing a blank pane.
+  /* Read the paper straight from arXiv. It serves /pdf/ with no
+     X-Frame-Options and no frame-ancestors policy, from a CDN that already
+     does range requests, so the first page appears at once - where proxying
+     it through this server meant downloading several megabytes before
+     anything could be shown. ARXIVBOT_LOCAL_PDF=1 switches to the local
+     copy, which is slower to start but works offline.
 
-     The iframe's own load event is not usable here: Chrome hands PDFs to a
-     separate viewer and the event does not fire, which would leave the
-     placeholder up forever. Ask the server for a single byte instead - that
-     answers once the file is on disk and ready to serve. */
-  var url = '/api/pdf?id=' + encodeURIComponent(id);
-  $('pdf-empty').innerHTML = '<p>fetching the paper…</p>';
-  $('pdf-empty').hidden = false;
-  $('pdf').hidden = true;
-  $('pdf').removeAttribute('src');
-
-  fetch(url, { headers: { Range: 'bytes=0-0' } })
-    .then(function(r){
-      if (r.status !== 206 && r.status !== 200) throw new Error('HTTP ' + r.status);
-      $('pdf').src = url;
-      $('pdf').hidden = false;
-      $('pdf-empty').hidden = true;
-    })
-    .catch(function(){
-      $('pdf-empty').innerHTML = '<p>could not load the PDF for this paper</p>';
-    });
+     The iframe's load event is no use either way: Chrome hands PDFs to a
+     separate viewer and it never fires. So the frame is simply shown - the
+     viewer draws its own progress. */
+  showPdf(id);
 
   fetch('/api/extract', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({id:id})})
     .then(function(r){ return r.json(); })
     .then(function(j){ if(j.error) throw new Error(j.error); poll(j.job); })
     .catch(fail);
+}
+
+function showPdf(id){
+  $('pdf-empty').hidden = true;
+  $('pdf').hidden = false;
+  $('pdf').src = S.localPdf
+    ? '/api/pdf?id=' + encodeURIComponent(id)
+    : 'https://arxiv.org/pdf/' + encodeURIComponent(id);
 }
 
 function poll(job){
@@ -362,14 +363,34 @@ function ready(spec){
 /* ---------- generate code ---------- */
 $('af').addEventListener('submit', function(e){ e.preventDefault(); gen($('q').value.trim()); });
 
+var KW = /^(class|def|return|import|from|as|if|elif|else|for|while|with|try|except|finally|raise|assert|lambda|yield|in|is|not|and|or|None|True|False|self|super|async|await|pass|break|continue)$/;
+
+/* One pass over the text: a token cannot then be re-matched inside markup
+   this function has already inserted. */
 function paint(raw, done){
-  var html = esc(raw)
-    .replace(/^(# !! DEVIATION[\s\S]*?)(?=\n#\s*\n|\n[^#])/m, '<span class="dev">$1</span>')
-    .replace(/(# TODO\(paper-silent\):[^\n]*)/g, '<span class="todo">$1</span>')
-    .replace(/(#\s*(?:Section|Reference|arXiv|Values taken|The paper does NOT)[^\n]*)/g, '<span class="cite">$1</span>')
-    .replace(/^(```\w*)$/gm, '<span class="fence">$1</span>')
-    .replace(/\b(class|def|return|import|from|self|super)\b/g, '<span class="kw">$1</span>');
+  var html = esc(raw).replace(
+    /(^```\w*$)|(#[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')|\b(\d+(?:\.\d+)?)\b|([A-Za-z_]\w*)/gm,
+    function(m, fence, comment, str, num, word){
+      if (fence) return '<span class="fence">' + fence + '</span>';
+      if (comment){
+        var cls = /TODO\(paper-silent\)/.test(comment) ? 'todo'
+                : /^#\s*!!/.test(comment) ? 'dev' : 'com';
+        return '<span class="' + cls + '">' + comment + '</span>';
+      }
+      if (str) return '<span class="str">' + str + '</span>';
+      if (num) return '<span class="num">' + num + '</span>';
+      if (word && KW.test(word)) return '<span class="kw">' + word + '</span>';
+      return m;
+    });
   $('code').innerHTML = html + (done ? '' : '<span class="caret"></span>');
+}
+
+/* "the attention block" -> attention_block.py */
+function filename(request){
+  var stem = String(request).toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+    .replace(/^the_/, '').slice(0, 34);
+  return (stem || 'skeleton') + '.py';
 }
 
 function gen(request){
@@ -393,8 +414,10 @@ function gen(request){
         return reader.read().then(function(res){
           if(res.done){
             paint(text, true);
-            $('status').textContent = Math.round((Date.now()-t0)/1000)+'s · '+
-              (text.match(/TODO\(paper-silent\)/g)||[]).length+' decisions left to you';
+            var gaps = (text.match(/TODO\(paper-silent\)/g)||[]).length;
+            $('status').textContent = Math.round((Date.now()-t0)/1000)+'s · ' +
+              (gaps === 0 ? 'nothing left undecided'
+                          : gaps + (gaps === 1 ? ' decision' : ' decisions') + ' left to you');
             done();
             return;
           }

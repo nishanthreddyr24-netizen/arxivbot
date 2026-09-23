@@ -12,6 +12,7 @@ alternative is several silent minutes.
 from __future__ import annotations
 
 import json
+import os
 import threading
 import uuid
 import webbrowser
@@ -131,6 +132,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._job(parse_qs(route.query))
         if route.path == "/api/ask":
             return self._ask(parse_qs(route.query))
+        if route.path == "/api/config":
+            return self._config()
         if route.path == "/api/pdf":
             return self._pdf(parse_qs(route.query))
         if route.path == "/api/generate":
@@ -192,6 +195,25 @@ class Handler(BaseHTTPRequestHandler):
             out["spec"] = _payload(job.spec)
             out["report"] = {"calls": job.calls, "quote_accuracy": job.quote_accuracy}
         self._json(out)
+
+    def _config(self) -> None:
+        """What the page needs to know about this server.
+
+        ``local_pdf`` decides where the paper is read from. arXiv serves
+        /pdf/ without X-Frame-Options or a frame-ancestors policy, and from a
+        CDN that already supports range requests, so framing it directly shows
+        the first page immediately instead of waiting on a multi-megabyte
+        download. Set ARXIVBOT_LOCAL_PDF=1 to route it through this server
+        instead - slower to start, but it works offline and on a cached copy.
+        """
+        config = LLMConfig.from_env()
+        self._json(
+            {
+                "local_pdf": os.environ.get("ARXIVBOT_LOCAL_PDF", "").lower()
+                in ("1", "true", "yes"),
+                "model": config.identity if config.api_key else None,
+            }
+        )
 
     def _pdf(self, query: dict) -> None:
         """Serve the PDF, honouring Range requests.
