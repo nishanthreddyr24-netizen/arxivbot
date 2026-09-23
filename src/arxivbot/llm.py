@@ -41,7 +41,10 @@ GEMINI_ENDPOINT = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 )
 
-DEFAULT_MODEL = "gemini-3.6-flash"
+# Chosen by measurement: fast enough to iterate on (~30s per call against
+# a paper section) and reliably available, where the larger flash models
+# were returning 503 under load.
+DEFAULT_MODEL = "gemini-flash-lite-latest"
 
 # Keys the Gemini schema dialect rejects. JSON Schema produced by pydantic
 # carries plenty that it will not accept.
@@ -72,7 +75,7 @@ class LLMConfig:
     temperature: float = 0.0
     max_output_tokens: int = 16384
     max_retries: int = 4
-    timeout: float = 180.0
+    timeout: float = 300.0
     use_cache: bool = True
 
     @classmethod
