@@ -17,13 +17,20 @@ by the user - see :func:`export_for_contribution`.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
 import httpx
 
-from arxivbot.ingest.fetch import USER_AGENT, cache_dir, parse_id
+from arxivbot.ingest.fetch import (
+    USER_AGENT,
+    FetchError,
+    cache_dir,
+    fetch_metadata,
+    parse_id,
+)
 from arxivbot.spec import SCHEMA_VERSION, ImplementationSpec
 
 DEFAULT_INDEX = (
@@ -62,12 +69,47 @@ def specs_dir() -> Path:
     return path
 
 
+_VERSION_RE = re.compile(r"v(\d+)$")
+
+
 def _key(arxiv_id: str) -> str:
     return parse_id(arxiv_id).replace("/", "_")
 
 
+def has_version(arxiv_id: str) -> bool:
+    """Whether an id pins a specific version, e.g. ``1706.03762v7``."""
+    return _VERSION_RE.search(parse_id(arxiv_id)) is not None
+
+
 def local_path(arxiv_id: str) -> Path:
     return specs_dir() / f"{_key(arxiv_id)}.json"
+
+
+def _newest_local_version(arxiv_id: str) -> Path | None:
+    """Highest-numbered stored version of an unversioned id.
+
+    Specs are filed under the version they describe, but almost nobody types
+    a version number. Without this, the ordinary `1706.03762` never matches
+    the stored `1706.03762v7.json`.
+    """
+    matches = []
+    for path in specs_dir().glob(f"{_key(arxiv_id)}v*.json"):
+        if match := _VERSION_RE.search(path.stem):
+            matches.append((int(match.group(1)), path))
+    if not matches:
+        return None
+    return max(matches)[1]
+
+
+def resolve_version(arxiv_id: str) -> str:
+    """Return a version-pinned id, asking arXiv only when necessary.
+
+    An id that already names a version is returned untouched, so the common
+    path costs nothing.
+    """
+    if has_version(arxiv_id):
+        return parse_id(arxiv_id)
+    return fetch_metadata(arxiv_id).arxiv_id
 
 
 def _check(spec: ImplementationSpec, source: Source) -> Hit:
@@ -76,10 +118,17 @@ def _check(spec: ImplementationSpec, source: Source) -> Hit:
 
 
 def get_local(arxiv_id: str) -> Hit | None:
-    """Look for a spec already on this machine."""
+    """Look for a spec already on this machine.
+
+    An unversioned id matches the newest stored version of that paper.
+    """
     path = local_path(arxiv_id)
     if not path.exists():
-        return None
+        if has_version(arxiv_id):
+            return None
+        path = _newest_local_version(arxiv_id)
+        if path is None:
+            return None
     try:
         return _check(ImplementationSpec.load(path), "local")
     except (ValueError, OSError):
@@ -121,12 +170,23 @@ def get_shared(arxiv_id: str, *, timeout: float = 15.0) -> Hit | None:
 
 
 def get(arxiv_id: str, *, use_shared: bool = True) -> Hit | None:
-    """This machine first, then the shared index. None if neither has it."""
+    """This machine first, then the shared index. None if neither has it.
+
+    The shared index is keyed by exact version, so an unversioned id has to be
+    resolved against arXiv before it can be looked up there. That costs a
+    request, which is why the local check - which can match an unversioned id
+    on its own - happens first.
+    """
     if hit := get_local(arxiv_id):
         return hit
-    if use_shared:
-        return get_shared(arxiv_id)
-    return None
+    if not use_shared:
+        return None
+
+    try:
+        pinned = resolve_version(arxiv_id)
+    except (FetchError, ValueError):
+        return None
+    return get_shared(pinned)
 
 
 def put(spec: ImplementationSpec) -> Path:
