@@ -131,6 +131,25 @@ def _stated_choice(
     return None
 
 
+def _described_choice(components: list[Component], axis: str) -> tuple[str, str | None] | None:
+    """The alternative named in a component's prose rather than its values.
+
+    A paper says "two linear transformations with a ReLU activation in
+    between" and never records an `activation` hyperparameter. Reading only
+    the hyperparameters would report the paper as silent on activation and
+    wave through a request for GELU as the user's free choice, when it is
+    actually a departure from what the paper describes.
+    """
+    for component in components:
+        prose = [component.name, component.role]
+        prose.extend(eq.description for eq in component.equations)
+        for token in _tokens(" ".join(prose)):
+            if _family_of(token) == axis:
+                section = component.provenance.section if component.provenance else None
+                return token, section
+    return None
+
+
 def check(
     spec: ImplementationSpec,
     query: str,
@@ -165,8 +184,14 @@ def check(
             continue
 
         stated = _stated_choice(available, axis)
+        hp: Hyperparameter | None = None
 
-        if stated is None:
+        if stated is not None:
+            paper_token, hp = stated
+            source = hp.provenance.section if hp.provenance else None
+        elif described := _described_choice(scope, axis):
+            paper_token, source = described
+        else:
             found.append(
                 Deviation(
                     axis=axis,
@@ -177,12 +202,9 @@ def check(
             )
             continue
 
-        paper_token, hp = stated
-        source = hp.provenance.section if hp.provenance else None
-
         if paper_token == token:
             stance = Stance.MATCHES_PAPER
-        elif hp.confidence in (Confidence.CONVENTIONAL, Confidence.GUESS):
+        elif hp is not None and hp.confidence in (Confidence.CONVENTIONAL, Confidence.GUESS):
             # The paper did not actually say this; the extractor filled it in.
             # Overriding a guess is not a deviation from the paper.
             stance = Stance.RESOLVES_UNKNOWN

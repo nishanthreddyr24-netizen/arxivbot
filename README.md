@@ -7,9 +7,10 @@ that component — with every design decision cited back to the span of the pape
 it came from, and with the things the paper **never specifies** marked as open
 questions instead of silently invented.
 
-> **Status: early.** The ingestion layer is built and working. The model-driven
-> extraction and synthesis layers are not written yet. See [Roadmap](#roadmap)
-> for what is real today and what is not.
+> **Status: early but working end to end.** A paper can be fetched, read and
+> turned into a spec you can query. Code generation is not written yet, and
+> nothing here has been evaluated at scale — see [Roadmap](#roadmap) and
+> [Limitations](#limitations) for what is real today and what is not.
 
 ## Why
 
@@ -79,6 +80,64 @@ Print a section's text:
 arxivbot inspect 2006.11239 --show "diffusion" --chars 3000
 ```
 
+### Extracting a spec
+
+This is the part that needs a model. Set `GEMINI_API_KEY` in your environment or
+a `.env` file — a free key takes a minute to get from
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey), no card needed.
+
+```bash
+arxivbot spec 1706.03762
+```
+
+```
+components (4):
+  Multi-Head Attention
+      Performs multiple attention functions in parallel on linearly projected
+      versions of queries, keys, and values, then concatenates the results.
+      built from: Scaled Dot-Product Attention
+      * h = 8
+      * d_k = 64
+
+values: 11 stated, 0 conventional, 1 unverified
+
+the paper does not specify (4):
+  [blocking   ] What is the weight initialization scheme for the linear layers?
+  [blocking   ] What loss function is used for training?
+  [minor      ] How are biases initialized throughout the network?
+
+7 model calls
+quotes verified against the source: 92%
+```
+
+A `*` marks a value the paper states and whose supporting sentence was found in
+the source. A `?` marks one that could not be verified.
+
+### Asking about one part
+
+Extraction happens once per paper. Asking costs nothing and involves no model
+call — the spec is already on disk.
+
+```bash
+arxivbot ask 1706.03762 "the attention block"
+arxivbot ask 1706.03762 "the residual stream"
+```
+
+Requests that contradict the paper are honoured, and labelled:
+
+```bash
+$ arxivbot ask 1706.03762 "feed forward but with gelu instead of relu"
+
+# !! DEVIATION - activation
+#    you asked for : gelu
+#    paper states  : relu (Position-wise Feed-Forward Networks)
+#    This code implements your choice, not the paper's.
+```
+
+Any model works. Point it elsewhere with `ARXIVBOT_MODEL`, or at any
+OpenAI-compatible endpoint — Groq, OpenRouter, a local Ollama — with
+`ARXIVBOT_PROVIDER=openai` and `ARXIVBOT_BASE_URL`.
+
 Accepts bare ids, versioned ids, and `arxiv.org/abs/...` URLs. Requests are
 throttled to the rate arXiv asks of automated clients.
 
@@ -112,19 +171,23 @@ fetch          arXiv Atom API + e-print tarball, disk-cached
 segment        unpack -> find root .tex -> splice \input -> strip comments
   |            -> cut into sections -> locate bibliography and appendix
   v
-extract        [planned] sections -> ImplementationSpec, many narrow
-  |            schema-constrained calls rather than one large one
+extract        sections -> ImplementationSpec, over several narrow
+  |            schema-constrained calls rather than one large one.
+  |            Every quote is checked against the source; a claim whose
+  |            evidence cannot be found is demoted, not recorded as fact.
   v
-ground         [planned] reconcile against the official repo, when one exists
-  |
-synthesise     [planned] user's request -> relevant spec subset -> skeleton
+select         a request -> the components it names, plus what they
+  |            compose. No model call: the spec is already on disk.
+  v
+synthesise     [planned] selected components -> code skeleton
   |
 critique       [planned] coverage + shape consistency + AST validity
 ```
 
-The model layer will be provider-agnostic (`litellm`), so any backend works and
-none is required — a free tier, a paid key, or a local model via Ollama. No
-component of this project will ever require a paid account to run.
+The model layer is provider-agnostic and written directly against two HTTP
+APIs rather than taking a framework dependency: Gemini, and any
+OpenAI-compatible endpoint, which covers Groq, OpenRouter, vLLM and Ollama at
+once. No component of this project will ever require a paid account to run.
 
 ## Roadmap
 
@@ -132,13 +195,35 @@ component of this project will ever require a paid account to run.
 - [x] LaTeX unpacking, `\input` flattening, section segmentation
 - [x] Bibliography and appendix boundary detection
 - [x] Algorithm, equation and table environment extraction
-- [ ] `ImplementationSpec` schema
-- [ ] Provider-agnostic model layer with disk-cached responses
-- [ ] Spec extraction from methodology and appendix
-- [ ] Underspecification report — what the paper does not tell you
-- [ ] Skeleton synthesis from a user's request
+- [x] `ImplementationSpec` schema with per-claim provenance and confidence
+- [x] Provider-agnostic model layer with disk-cached responses
+- [x] Spec extraction from methodology and appendix
+- [x] Quote verification — claims whose evidence is absent are demoted
+- [x] Underspecification report — what the paper does not tell you
+- [x] Request routing: one spec answers many different questions
+- [x] Deviation detection when a request contradicts the paper
+- [ ] Skeleton synthesis — emit actual code, not just the spec
 - [ ] Critic loop (spec coverage, shape consistency, AST validity)
+- [ ] The shared spec index
+- [ ] Grounding against the official implementation, when one exists
 - [ ] Evaluation against papers with official implementations
+
+## Limitations
+
+Known and worth stating plainly:
+
+- **Barely evaluated.** Tested on a handful of papers. No numbers exist yet for
+  how much it recovers or how reliably it spots a gap. Until they do, treat
+  output as a starting point for a human.
+- **LaTeX macros defeat quote verification.** A paper defining
+  `\newcommand{\dmodel}{d_{\text{model}}}` writes `$\dmodel=512$`, so the
+  literal sentence a reader would quote is not in the source and the claim is
+  demoted even though it is correct.
+- **False gaps happen.** The underspecification pass occasionally reports
+  something the paper does state.
+- **No PDF fallback.** Roughly one submission in ten ships no LaTeX source.
+- **Structure-aware, so unusual LaTeX hurts.** Papers that avoid `\section`
+  or build headings from custom macros will segment poorly.
 
 ## Evaluation
 
