@@ -25,11 +25,12 @@ from arxivbot.deviation import banner as deviation_banner
 from arxivbot.deviation import check as deviation_check
 from arxivbot.extract import extract
 from arxivbot.ingest import build_document, load
-from arxivbot.ingest.fetch import FetchError
+from arxivbot.ingest.fetch import FetchError, fetch_pdf
 from arxivbot.ingest.latex import UnpackError
 from arxivbot.llm import LLMConfig, LLMError
 from arxivbot.select import select as select_components
 from arxivbot.spec import Confidence, ImplementationSpec
+from arxivbot.synthesize import generate
 
 ASSETS = Path(__file__).parent / "assets"
 STAGES = ("fetch", "parse", "inventory", "detail", "unknowns")
@@ -130,6 +131,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._job(parse_qs(route.query))
         if route.path == "/api/ask":
             return self._ask(parse_qs(route.query))
+        if route.path == "/api/pdf":
+            return self._pdf(parse_qs(route.query))
+        if route.path == "/api/generate":
+            return self._generate(parse_qs(route.query))
         self._json({"error": "not found"}, 404)
 
     def do_POST(self) -> None:
@@ -187,6 +192,60 @@ class Handler(BaseHTTPRequestHandler):
             out["spec"] = _payload(job.spec)
             out["report"] = {"calls": job.calls, "quote_accuracy": job.quote_accuracy}
         self._json(out)
+
+    def _pdf(self, query: dict) -> None:
+        arxiv_id = (query.get("id") or [""])[0]
+        try:
+            data = fetch_pdf(arxiv_id)
+        except (FetchError, ValueError) as exc:
+            return self._json({"error": str(exc)}, 404)
+        self.send_response(200)
+        self.send_header("Content-Type", "application/pdf")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Content-Disposition", "inline")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _generate(self, query: dict) -> None:
+        """Stream a code skeleton as it is produced.
+
+        Written straight to the socket with no Content-Length: the point is
+        that the reader sees tokens arrive, so nothing may buffer the body.
+        """
+        arxiv_id = (query.get("id") or [""])[0]
+        request = (query.get("q") or [""])[0]
+        hit = store.get_local(arxiv_id)
+        if hit is None:
+            return self._json({"error": "extract this paper first"}, 404)
+        if not request:
+            return self._json({"error": "say what you want"}, 400)
+
+        selection = select_components(hit.spec, request)
+        if selection.empty:
+            return self._json(
+                {
+                    "error": "Nothing in this paper matches that. It covers: "
+                    + ", ".join(c.name for c in hit.spec.components)
+                },
+                404,
+            )
+        deviations = deviation_check(hit.spec, request, selection.components)
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+        try:
+            for chunk in generate(hit.spec, selection, deviations, request):
+                self.wfile.write(chunk.encode("utf-8"))
+                self.wfile.flush()
+        except LLMError as exc:
+            # The reader is mid-stream, so the failure has to arrive as part
+            # of the document rather than as a status code.
+            self.wfile.write(f"\n\n# generation failed: {exc}\n".encode("utf-8"))
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # reader navigated away mid-stream
 
     def _ask(self, query: dict) -> None:
         arxiv_id = (query.get("id") or [""])[0]

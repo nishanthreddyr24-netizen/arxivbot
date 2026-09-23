@@ -7,9 +7,9 @@ that component — with every design decision cited back to the span of the pape
 it came from, and with the things the paper **never specifies** marked as open
 questions instead of silently invented.
 
-> **Status: early but working end to end.** A paper can be fetched, read and
-> turned into a spec you can query. Code generation is not written yet, and
-> nothing here has been evaluated at scale — see [Roadmap](#roadmap) and
+> **Status: early but working end to end.** A paper can be fetched, read,
+> turned into a spec, and rendered as an annotated code skeleton. Nothing
+> here has been evaluated at scale — see [Roadmap](#roadmap) and
 > [Limitations](#limitations) for what is real today and what is not.
 
 ## Why
@@ -86,10 +86,11 @@ arxivbot inspect 2006.11239 --show "diffusion" --chars 3000
 arxivbot serve
 ```
 
-Opens a local page at `127.0.0.1:8000`: paste an arXiv id, watch the stages
-run, then click any extracted value to see the sentence in the paper that
-backs it. Runs entirely on your machine against your own key — it talks to
-arXiv and your model provider and nothing else.
+Opens a local workspace at `127.0.0.1:8000`. The paper renders on the left;
+you ask for a component on the right and watch the skeleton being written.
+
+Runs entirely on your machine against your own key — it talks to arXiv and
+your model provider and nothing else.
 
 ### Extracting a spec
 
@@ -213,7 +214,7 @@ once. No component of this project will ever require a paid account to run.
 - [x] Underspecification report — what the paper does not tell you
 - [x] Request routing: one spec answers many different questions
 - [x] Deviation detection when a request contradicts the paper
-- [ ] Skeleton synthesis — emit actual code, not just the spec
+- [x] Skeleton synthesis — emit actual code, not just the spec
 - [ ] Critic loop (spec coverage, shape consistency, AST validity)
 - [ ] The shared spec index
 - [ ] Grounding against the official implementation, when one exists

@@ -40,6 +40,10 @@ from arxivbot.ingest.fetch import cache_dir
 GEMINI_ENDPOINT = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 )
+GEMINI_STREAM = (
+    "https://generativelanguage.googleapis.com/v1beta/models/{model}"
+    ":streamGenerateContent?alt=sse"
+)
 
 # Chosen by measurement: fast enough to iterate on (~30s per call against
 # a paper section) and reliably available, where the larger flash models
@@ -342,3 +346,101 @@ def complete_json(
         raise LLMError(
             f"{model_type.__name__} validation failed: {str(exc)[:400]}"
         ) from exc
+
+
+def stream(
+    prompt: str,
+    *,
+    system: str | None = None,
+    config: LLMConfig | None = None,
+):
+    """Yield the response in pieces as the model produces it.
+
+    Generation runs for tens of seconds, and a reader watching a blank panel
+    assumes it has hung. Streaming is not decoration here - it is the
+    difference between a tool that feels alive and one that feels broken.
+
+    Cached responses are replayed in chunks so a repeat request behaves the
+    same way as the first, only faster.
+    """
+    config = config or LLMConfig.from_env()
+    if not config.api_key:
+        raise LLMError(
+            "no API key found. Set GEMINI_API_KEY in your environment or a .env file "
+            "(get a free one at https://aistudio.google.com/apikey)"
+        )
+
+    fingerprint = json.dumps(
+        {
+            "provider": config.provider,
+            "model": config.model,
+            "prompt": prompt,
+            "system": system,
+            "stream": True,
+            "temperature": config.temperature,
+        },
+        sort_keys=True,
+    )
+    cached = _cache_path(fingerprint)
+    if config.use_cache and cached.exists():
+        try:
+            text = json.loads(cached.read_text(encoding="utf-8"))["text"]
+            for i in range(0, len(text), 96):
+                yield text[i : i + 96]
+            return
+        except (ValueError, KeyError, OSError):
+            pass
+
+    if config.provider != "gemini":
+        # One non-streaming call, handed over whole. Better than failing.
+        yield complete(prompt, system=system, config=config)
+        return
+
+    payload: dict[str, Any] = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": config.temperature,
+            "maxOutputTokens": config.max_output_tokens,
+        },
+    }
+    if system:
+        payload["systemInstruction"] = {"parts": [{"text": system}]}
+
+    collected: list[str] = []
+    try:
+        with httpx.stream(
+            "POST",
+            GEMINI_STREAM.format(model=config.model),
+            json=payload,
+            headers={"x-goog-api-key": config.api_key, "Content-Type": "application/json"},
+            timeout=config.timeout,
+        ) as response:
+            if response.status_code != 200:
+                response.read()
+                raise LLMError(f"HTTP {response.status_code}: {response.text[:300]}")
+            for line in response.iter_lines():
+                if not line.startswith("data:"):
+                    continue
+                blob = line[5:].strip()
+                if not blob or blob == "[DONE]":
+                    continue
+                try:
+                    event = json.loads(blob)
+                except ValueError:
+                    continue
+                for candidate in event.get("candidates") or []:
+                    for part in candidate.get("content", {}).get("parts") or []:
+                        if piece := part.get("text"):
+                            collected.append(piece)
+                            yield piece
+    except httpx.HTTPError as exc:
+        raise LLMError(f"stream failed: {exc}") from exc
+
+    if config.use_cache and collected:
+        try:
+            cached.write_text(
+                json.dumps({"model": config.identity, "text": "".join(collected)}),
+                encoding="utf-8",
+            )
+        except OSError:
+            pass
