@@ -194,17 +194,55 @@ class Handler(BaseHTTPRequestHandler):
         self._json(out)
 
     def _pdf(self, query: dict) -> None:
+        """Serve the PDF, honouring Range requests.
+
+        The browser's PDF viewer opens a document, aborts that request, then
+        re-requests byte ranges. Answering the first one with a single
+        multi-megabyte write means the abort lands mid-``sendall`` and the
+        connection is torn down (WinError 10053 on Windows) - the viewer ends
+        up with an empty body and renders nothing at all.
+        """
         arxiv_id = (query.get("id") or [""])[0]
         try:
             data = fetch_pdf(arxiv_id)
         except (FetchError, ValueError) as exc:
             return self._json({"error": str(exc)}, 404)
-        self.send_response(200)
+
+        total = len(data)
+        start, end = 0, total - 1
+        partial = False
+
+        header = self.headers.get("Range", "")
+        if header.startswith("bytes="):
+            first, _, last = header[6:].partition("-")
+            try:
+                if first:
+                    start = int(first)
+                    end = int(last) if last else total - 1
+                elif last:  # a suffix range: the final N bytes
+                    start = max(0, total - int(last))
+                partial = True
+            except ValueError:
+                partial = False
+            start = max(0, min(start, total - 1))
+            end = max(start, min(end, total - 1))
+
+        chunk = data[start : end + 1]
+        self.send_response(206 if partial else 200)
         self.send_header("Content-Type", "application/pdf")
-        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Content-Length", str(len(chunk)))
         self.send_header("Content-Disposition", "inline")
+        if partial:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{total}")
         self.end_headers()
-        self.wfile.write(data)
+
+        # Written in slices so an abort costs one slice, not the connection.
+        try:
+            for offset in range(0, len(chunk), 64 * 1024):
+                self.wfile.write(chunk[offset : offset + 64 * 1024])
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            pass  # the viewer moved on; nothing to recover
 
     def _generate(self, query: dict) -> None:
         """Stream a code skeleton as it is produced.

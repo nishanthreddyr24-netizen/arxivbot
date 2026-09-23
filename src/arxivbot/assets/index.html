@@ -142,17 +142,34 @@ body{
 .chips button:disabled{opacity:.4;cursor:default}
 
 /* ---- code ---- */
-.code-wrap{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
-pre#code{
-  flex:1;margin:0;overflow:auto;padding:16px 18px 40px;
-  font-family:var(--f-mono);font-size:.795rem;line-height:1.62;
-  white-space:pre-wrap;word-break:break-word;color:var(--ink-soft);background:var(--ground)
+.code-wrap{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:var(--sunk)}
+.codehead{
+  flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px 8px 14px;
+  border-bottom:1px solid var(--rule);background:var(--surface)
 }
-#code .todo{color:var(--accent);font-weight:500}
-#code .dev{color:var(--accent);font-weight:600;background:var(--accent-tint);display:block}
-#code .cite{color:var(--ink-faint)}
-#code .kw{color:var(--ink);font-weight:600}
-#code .fence{color:var(--rule-strong)}
+.fname{
+  font-family:var(--f-mono);font-size:.76rem;color:var(--ink-soft);
+  display:flex;align-items:center;gap:7px
+}
+.fname::before{
+  content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none
+}
+.codehead .spacer{margin-left:auto}
+pre#code{
+  flex:1;margin:0;overflow:auto;padding:14px 16px 28px;
+  font-family:var(--f-mono);font-size:.795rem;line-height:1.66;
+  white-space:pre-wrap;word-break:break-word;color:var(--ink);background:var(--sunk);
+  tab-size:4
+}
+#code .todo{color:var(--accent);font-weight:600;background:var(--accent-tint);
+  display:inline-block;width:100%;border-radius:2px}
+#code .dev{color:var(--accent);font-weight:600;background:var(--accent-tint);
+  display:inline-block;width:100%;border-radius:2px}
+#code .com{color:var(--ink-faint)}
+#code .kw{color:var(--accent-ink);font-weight:600}
+#code .str{color:var(--good)}
+#code .num{color:var(--accent)}
+#code .fence{display:none}
 .caret{
   display:inline-block;width:.5em;height:1em;background:var(--accent);
   vertical-align:-.16em;animation:blink 1.05s steps(1) infinite
@@ -230,12 +247,13 @@ pre#code{
     </div>
 
     <div class="code-wrap" id="code-wrap" hidden>
-      <pre id="code"></pre>
-      <div class="codebar">
-        <span id="status"></span>
+      <div class="codehead">
+        <span class="fname" id="fname">skeleton.py</span>
         <span class="spacer"></span>
         <button class="mini" id="copy">Copy</button>
       </div>
+      <pre id="code"></pre>
+      <div class="codebar"><span id="status"></span></div>
     </div>
   </section>
 </div>
@@ -267,10 +285,29 @@ function open(id){
   $('go').disabled = true; $('go').textContent = '…';
   $('now').textContent = 'extracting ' + id;
 
-  /* show the PDF straight away - it does not wait on extraction */
-  $('pdf').src = '/api/pdf?id=' + encodeURIComponent(id);
-  $('pdf').hidden = false;
-  $('pdf-empty').hidden = true;
+  /* The PDF loads independently of extraction, but the first fetch of an
+     uncached paper takes a while - say so rather than showing a blank pane.
+
+     The iframe's own load event is not usable here: Chrome hands PDFs to a
+     separate viewer and the event does not fire, which would leave the
+     placeholder up forever. Ask the server for a single byte instead - that
+     answers once the file is on disk and ready to serve. */
+  var url = '/api/pdf?id=' + encodeURIComponent(id);
+  $('pdf-empty').innerHTML = '<p>fetching the paper…</p>';
+  $('pdf-empty').hidden = false;
+  $('pdf').hidden = true;
+  $('pdf').removeAttribute('src');
+
+  fetch(url, { headers: { Range: 'bytes=0-0' } })
+    .then(function(r){
+      if (r.status !== 206 && r.status !== 200) throw new Error('HTTP ' + r.status);
+      $('pdf').src = url;
+      $('pdf').hidden = false;
+      $('pdf-empty').hidden = true;
+    })
+    .catch(function(){
+      $('pdf-empty').innerHTML = '<p>could not load the PDF for this paper</p>';
+    });
 
   fetch('/api/extract', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({id:id})})
@@ -344,6 +381,7 @@ function gen(request){
   $('code-wrap').hidden = false;
   $('code').innerHTML = '<span class="thinking">reading the spec…</span><span class="caret"></span>';
   $('status').textContent = 'generating';
+  $('fname').textContent = filename(request);
   $('model').textContent = '';
 
   var t0 = Date.now(), text = '';
