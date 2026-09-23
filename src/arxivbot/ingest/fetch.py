@@ -22,6 +22,7 @@ ATOM = "http://www.w3.org/2005/Atom"
 ARXIV_NS = "http://arxiv.org/schemas/atom"
 API = "http://export.arxiv.org/api/query"
 EPRINT = "https://arxiv.org/e-print/{arxiv_id}"
+PDF = "https://arxiv.org/pdf/{arxiv_id}"
 
 # arXiv asks automated clients to identify themselves and to stay under
 # roughly one request every three seconds.
@@ -206,6 +207,37 @@ def fetch_source(arxiv_id: str, *, refresh: bool = False, timeout: float = 60.0)
 
     if not response.content:
         raise FetchError(f"arXiv returned an empty source archive for {ident}")
+
+    blob.write_bytes(response.content)
+    return response.content
+
+
+def fetch_pdf(arxiv_id: str, *, timeout: float = 60.0) -> bytes:
+    """Download the rendered PDF, cached alongside the source.
+
+    Only the reader needs this - extraction works from the LaTeX. It exists so
+    a local page can show the paper next to what was extracted from it, served
+    from here rather than framed from arxiv.org.
+    """
+    ident = parse_id(arxiv_id)
+    blob = cache_dir() / f"{ident.replace('/', '_')}.pdf"
+    if blob.exists():
+        return blob.read_bytes()
+
+    _throttle()
+    try:
+        response = httpx.get(
+            PDF.format(arxiv_id=ident),
+            headers={"User-Agent": USER_AGENT},
+            timeout=timeout,
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise FetchError(f"could not download the PDF for {ident}: {exc}") from exc
+
+    if not response.content.startswith(b"%PDF-"):
+        raise FetchError(f"arXiv did not return a PDF for {ident}")
 
     blob.write_bytes(response.content)
     return response.content
