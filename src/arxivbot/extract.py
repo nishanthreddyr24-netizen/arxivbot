@@ -22,7 +22,13 @@ from functools import lru_cache
 from pydantic import BaseModel, Field
 
 from arxivbot import __version__
-from arxivbot.ingest.latex import Document, Section
+from arxivbot.ingest.latex import (
+    ALGORITHM_ENVS,
+    EQUATION_ENVS,
+    Document,
+    Section,
+    extract_environments,
+)
 from arxivbot.llm import LLMConfig, LLMError, complete_json
 from arxivbot.spec import (
     Component,
@@ -331,6 +337,58 @@ def _text_of(sections: list[Section], doc: Document, limit: int = MAX_CHARS_PER_
     return "\n\n".join(chunks)
 
 
+def landmarks(doc: Document, sections: list[Section]) -> dict[str, list[str]]:
+    """The structural features of a paper's method, from the source itself.
+
+    Subsection headings, algorithm blocks and display equations exist in every
+    paper in every field. Using them rather than a list of expected part names
+    is what keeps this from being tuned to one kind of paper: a diffusion
+    paper has noise schedules where a transformer has attention heads, but
+    both write equations and both cut their method into subsections.
+    """
+    span = (
+        (min(s.start for s in sections), max(s.end for s in sections))
+        if sections
+        else (0, len(doc.tex))
+    )
+    inside = lambda start: span[0] <= start < span[1]  # noqa: E731
+
+    return {
+        "subsections": [s.title for s in sections if s.level > 1],
+        "algorithms": [
+            env.body.strip().splitlines()[0][:80] if env.body.strip() else env.name
+            for env in extract_environments(doc.tex, ALGORITHM_ENVS)
+            if inside(env.start)
+        ],
+        "equations": [
+            " ".join(env.body.split())[:110]
+            for env in extract_environments(doc.tex, EQUATION_ENVS)
+            if inside(env.start)
+        ],
+    }
+
+
+def _landmarks(doc: Document, sections: list[Section]) -> str:
+    """Those features, written into the prompt as things to account for."""
+    found = landmarks(doc, sections)
+    lines: list[str] = []
+    for label, items in (
+        ("Subsections of the method", found["subsections"]),
+        ("Algorithm blocks", found["algorithms"]),
+        ("Equations", found["equations"]),
+    ):
+        if items:
+            lines.append(f"{label} ({len(items)}):")
+            lines.extend(f"  - {item}" for item in items[:20])
+    if not lines:
+        return ""
+    return (
+        "The method contains the following. Every one of them belongs to some "
+        "component; if something here is not covered by a component you list, "
+        "you have missed a component.\n\n" + "\n".join(lines) + "\n\n"
+    )
+
+
 def _inventory(doc: Document, config: LLMConfig, report: Report) -> Inventory:
     sections = doc.methodology() or doc.sections[:6]
     prompt = (
@@ -338,6 +396,11 @@ def _inventory(doc: Document, config: LLMConfig, report: Report) -> Inventory:
         "List the components of the proposed method - the pieces someone would "
         "implement as separate units. Use the paper's own names. Set depends_on "
         "where one component is built from another.\n\n"
+        "Be exhaustive, and include the structural pieces as well as the "
+        "headline ones: anything that wraps, connects or feeds the others is "
+        "still something a reimplementer has to write. A component you leave "
+        "out is reported to the reader as something the paper does not cover.\n\n"
+        f"{_landmarks(doc, sections)}"
         f"{_text_of(sections, doc)}"
     )
     report.calls += 1
