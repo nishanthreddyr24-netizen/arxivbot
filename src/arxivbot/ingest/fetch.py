@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -74,12 +75,41 @@ def parse_id(raw: str) -> str:
     raise ValueError(f"could not parse an arXiv id out of {raw!r}")
 
 
-def cache_dir() -> Path:
-    """Where downloaded sources live. Override with ``ARXIVBOT_CACHE``."""
-    root = os.environ.get("ARXIVBOT_CACHE")
-    path = Path(root) if root else Path.home() / ".cache" / "arxivbot"
-    path.mkdir(parents=True, exist_ok=True)
+def cache_dir(*, create: bool = True) -> Path:
+    """Where downloaded sources live, following each platform's convention.
+
+    ``ARXIVBOT_CACHE`` overrides everything. Otherwise:
+    Windows ``%LOCALAPPDATA%\\arxivbot\\Cache``, macOS
+    ``~/Library/Caches/arxivbot``, and elsewhere ``$XDG_CACHE_HOME/arxivbot``
+    falling back to ``~/.cache/arxivbot``.
+    """
+    if root := os.environ.get("ARXIVBOT_CACHE"):
+        path = Path(root).expanduser()
+    elif sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local"
+        path = Path(base) / "arxivbot" / "Cache"
+    elif sys.platform == "darwin":
+        path = Path.home() / "Library" / "Caches" / "arxivbot"
+    else:
+        base = os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache"
+        path = Path(base).expanduser() / "arxivbot"
+
+    if create:
+        path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def cache_entries() -> list[Path]:
+    """Every cached e-print archive, newest first."""
+    path = cache_dir(create=False)
+    if not path.is_dir():
+        return []
+    return sorted(path.glob("*.eprint"), key=lambda f: -f.stat().st_mtime)
+
+
+def cache_size() -> int:
+    """Total bytes held in the cache."""
+    return sum(f.stat().st_size for f in cache_entries())
 
 
 def _throttle() -> None:
