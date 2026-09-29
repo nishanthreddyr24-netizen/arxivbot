@@ -141,6 +141,26 @@ body{
 .chips button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
 .chips button:disabled{opacity:.4;cursor:default}
 
+/* ---- did you mean ---- */
+.guess{padding:22px 18px;max-width:34rem}
+.guess h3{
+  font-family:var(--f-body);font-weight:600;font-size:.95rem;margin:0 0 4px;color:var(--ink)
+}
+.guess p{margin:0 0 14px;color:var(--ink-faint);font-size:.87rem}
+.guess .row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+.guess .row button{
+  font-size:.82rem;padding:6px 12px;background:var(--surface);color:var(--ink);
+  border:1px solid var(--accent-edge);border-radius:99px;cursor:pointer;font-family:var(--f-body)
+}
+.guess .row button:hover{border-color:var(--accent);color:var(--accent)}
+.guess .all{border-top:1px solid var(--rule);padding-top:13px}
+.guess .all span{font-size:.78rem;color:var(--ink-faint);display:block;margin-bottom:7px}
+.guess .all button{
+  font-size:.78rem;padding:4px 10px;background:none;color:var(--ink-soft);
+  border:1px solid var(--rule);border-radius:99px;cursor:pointer;font-family:var(--f-body)
+}
+.guess .all button:hover{border-color:var(--accent);color:var(--accent)}
+
 /* ---- code ---- */
 .code-wrap{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:var(--sunk)}
 .codehead{
@@ -393,6 +413,31 @@ function filename(request){
   return (stem || 'skeleton') + '.py';
 }
 
+/* A miss is a question, not a dead end: show the nearest names and let the
+   reader pick, rather than guessing at an abbreviation and being confidently
+   wrong about it. */
+function offer(request, close, all){
+  $('code-wrap').hidden = true;
+  $('code-empty').hidden = false;
+  $('code-empty').innerHTML =
+    '<div class="guess"><h3>Nothing matched ' + esc(JSON.stringify(request)) + '</h3>' +
+    '<p>The extracted spec has no component by that name. Did you mean:</p>' +
+    '<div class="row">' + close.map(function(n){
+      return '<button type="button" data-n="'+esc(n)+'">'+esc(n)+'</button>'; }).join('') +
+    '</div>' +
+    (all && all.length ? '<div class="all"><span>or anything else this paper covers</span>' +
+      all.map(function(n){
+        return '<button type="button" data-n="'+esc(n)+'">'+esc(n)+'</button>'; }).join('') +
+      '</div>' : '') +
+    '</div>';
+  Array.prototype.forEach.call($('code-empty').querySelectorAll('button'), function(b){
+    b.addEventListener('click', function(){
+      $('q').value = b.dataset.n;
+      gen(b.dataset.n);
+    });
+  });
+}
+
 function gen(request){
   if(!request || !S.id || S.busy) return;
   S.busy = true;
@@ -408,7 +453,13 @@ function gen(request){
   var t0 = Date.now(), text = '';
   fetch('/api/generate?id='+encodeURIComponent(S.id)+'&q='+encodeURIComponent(request))
     .then(function(r){
-      if(!r.ok) return r.json().then(function(j){ throw new Error(j.error||'failed'); });
+      if(!r.ok) return r.json().then(function(j){
+        var err = new Error(j.error||'failed');
+        if (j.did_you_mean && j.did_you_mean.length){
+          err.suggestions = j.did_you_mean; err.available = j.available || [];
+        }
+        throw err;
+      });
       var reader = r.body.getReader(), dec = new TextDecoder();
       (function pump(){
         return reader.read().then(function(res){
@@ -429,8 +480,11 @@ function gen(request){
       })();
     })
     .catch(function(e){
-      $('code').innerHTML = '<span class="todo"># '+esc(e.message||e)+'</span>';
-      $('status').textContent = 'failed';
+      if (e && e.suggestions){ offer(request, e.suggestions, e.available); }
+      else {
+        $('code').innerHTML = '<span class="todo"># '+esc(e.message||e)+'</span>';
+        $('status').textContent = 'failed';
+      }
       done();
     });
 

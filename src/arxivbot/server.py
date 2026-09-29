@@ -29,6 +29,7 @@ from arxivbot.ingest import build_document, load
 from arxivbot.ingest.fetch import FetchError, fetch_pdf
 from arxivbot.ingest.latex import UnpackError
 from arxivbot.llm import LLMConfig, LLMError
+from arxivbot.select import did_you_mean, suggest
 from arxivbot.select import select as select_components
 from arxivbot.spec import Confidence, ImplementationSpec
 from arxivbot.synthesize import generate
@@ -282,17 +283,16 @@ class Handler(BaseHTTPRequestHandler):
 
         selection = select_components(hit.spec, request)
         if selection.empty:
-            # Say only what is actually known. The paper may well cover this
-            # and the extraction may simply have missed it - claiming the
-            # paper lacks something, on the strength of our own incomplete
-            # spec, is the exact failure this project exists to avoid.
+            # An abbreviation or a synonym cannot be matched by string
+            # similarity, and guessing would put a wrong answer under a
+            # confident heading. Offer the nearest names and let the reader
+            # choose. Nothing is claimed about the paper here: the extraction
+            # may simply have missed whatever was asked for.
             return self._json(
                 {
-                    "error": "No component in the extracted spec matches that. "
-                    "It found: "
-                    + ", ".join(c.name for c in hit.spec.components)
-                    + ". If the paper does cover this, the extraction missed "
-                    "it - re-run with a higher component limit."
+                    "error": "No component in the extracted spec matches that.",
+                    "did_you_mean": did_you_mean(hit.spec, request),
+                    "available": suggest(hit.spec),
                 },
                 404,
             )
@@ -322,6 +322,15 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": "extract this paper first"}, 404)
 
         selection = select_components(hit.spec, question)
+        if selection.empty:
+            return self._json(
+                {
+                    "error": "No component in the extracted spec matches that.",
+                    "did_you_mean": did_you_mean(hit.spec, question),
+                    "available": suggest(hit.spec),
+                },
+                404,
+            )
         deviations = deviation_check(hit.spec, question, selection.components)
         self._json(
             {

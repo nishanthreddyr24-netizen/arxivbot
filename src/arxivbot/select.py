@@ -19,21 +19,89 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 
 from arxivbot.spec import Component, ImplementationSpec, Unknown
 
-# Words that carry no signal when matching a request to a component.
+# Words that carry no signal when matching a request to a component. Words
+# like "layer", "block" and "module" are deliberately NOT here: they read as
+# filler in "the attention block", but they are also half the names papers
+# give things - Encoder Layer, Layer Normalization - so dropping them loses
+# the signal they carry.
 _STOPWORDS = frozenset(
     """a an the of for to in on and or with code give me show write implement
-    implementation how does do i want need block layer module part get using
-    use its it is are that this""".split()
+    implementation how does do i want need get using use its it is are that
+    this please just some""".split()
 )
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
+# Below this length a token matches too much to be trusted loosely.
+_FUZZY_MIN = 4
+
 
 def _tokens(text: str) -> set[str]:
     return {t for t in _TOKEN_RE.findall(text.lower()) if t not in _STOPWORDS}
+
+
+def _canon(token: str) -> str:
+    """Fold British and American spellings together.
+
+    "normalisation" and "normalization" diverge at the seventh character, so
+    no amount of prefix matching connects them - and papers and readers do
+    not agree on which to use.
+    """
+    for british, american in (("isation", "ization"), ("ising", "izing"),
+                              ("ised", "ized"), ("ise", "ize")):
+        if token.endswith(british):
+            return token[: -len(british)] + american
+    return token
+
+
+def _initials(text: str) -> str:
+    """First letters of a name, in order: "Feed-Forward Networks" -> "ffn".
+
+    Must come from the text, not from the token set - a set has no order, so
+    its initials spell nothing and the acronym never matches.
+    """
+    words = [t for t in _TOKEN_RE.findall(text.lower()) if len(t) > 2]
+    return "".join(word[0] for word in words)
+
+
+def _hits(wanted: set[str], candidate: set[str], initials: str = "") -> set[str]:
+    """Which request tokens are answered by ``candidate``'s tokens.
+
+    Exact equality alone is too brittle for the way people actually type:
+    "norm" never equals "normalization", "embedding" never equals
+    "embeddings", and "layernorm" is one token where the paper wrote two.
+    So a token also counts when it shares a prefix with a candidate token, or
+    when it appears inside the candidate's name with the spaces taken out -
+    one rule that covers stemming, plurals and compounds together.
+    """
+    if not candidate:
+        return set()
+    candidate = {_canon(word) for word in candidate}
+    wanted = {_canon(word) for word in wanted}
+    squashed = "".join(sorted(candidate))
+    joined = "".join(candidate)
+
+    found = set()
+    for token in wanted:
+        if token in candidate:
+            found.add(token)
+        elif len(token) >= _FUZZY_MIN and (
+            any(
+                len(other) >= _FUZZY_MIN
+                and (other.startswith(token) or token.startswith(other))
+                for other in candidate
+            )
+            or token in joined
+            or token in squashed
+        ):
+            found.add(token)
+        elif 2 <= len(token) <= 5 and len(initials) >= 2 and token in initials:
+            found.add(token)
+    return found
 
 
 @dataclass(slots=True)
@@ -79,8 +147,8 @@ def _score(component: Component, wanted: set[str]) -> tuple[float, str]:
     name_tokens = _tokens(component.name)
     role_tokens = _tokens(component.role)
 
-    name_hits = wanted & name_tokens
-    role_hits = wanted & role_tokens - name_hits
+    name_hits = _hits(wanted, name_tokens, _initials(component.name))
+    role_hits = _hits(wanted, role_tokens) - name_hits
 
     # A name match is the strong signal: components are named the way papers
     # name them, which is the vocabulary a reader will use.
@@ -93,7 +161,7 @@ def _score(component: Component, wanted: set[str]) -> tuple[float, str]:
         other |= _tokens(eq.description)
     for tensor in list(component.inputs) + list(component.outputs):
         other |= _tokens(tensor.name)
-    other_hits = wanted & other - name_hits - role_hits
+    other_hits = _hits(wanted, other) - name_hits - role_hits
     score += len(other_hits) / len(wanted) * 0.25
 
     reasons = []
@@ -186,3 +254,38 @@ def select(
 def suggest(spec: ImplementationSpec, limit: int = 12) -> list[str]:
     """What this paper can be asked about - for when a request matches nothing."""
     return [c.name for c in spec.components[:limit]]
+
+
+def did_you_mean(
+    spec: ImplementationSpec, query: str, *, limit: int = 4, floor: float = 0.22
+) -> list[str]:
+    """The nearest component names to a request that matched nothing.
+
+    Token matching cannot reach an abbreviation or a synonym: nothing about
+    "ffn" resembles "Position-wise Feed-Forward Networks" as a string, and
+    "mlp" is a different word for the same thing. Rather than guess - which
+    would put a wrong answer under a confident heading - offer the closest
+    names and let the reader choose. A shortlist the user picks from is
+    honest in a way a silent best guess is not.
+
+    Similarity is character-level against the name and the role, so a request
+    that echoes the description still surfaces the right component.
+    """
+    wanted = query.lower().strip()
+    if not wanted:
+        return []
+
+    scored: list[tuple[float, str]] = []
+    for component in spec.components:
+        name = component.name.lower()
+        best = SequenceMatcher(None, wanted, name).ratio()
+        # A short query against a long name scores badly on whole-string
+        # similarity, so also try the request against each word of the name.
+        for word in name.split():
+            best = max(best, SequenceMatcher(None, wanted, word).ratio())
+        if component.role:
+            best = max(best, SequenceMatcher(None, wanted, component.role.lower()).ratio() * 0.8)
+        scored.append((best, component.name))
+
+    scored.sort(key=lambda pair: -pair[0])
+    return [name for score, name in scored[:limit] if score >= floor]

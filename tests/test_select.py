@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from arxivbot.select import select, suggest
+from arxivbot.select import did_you_mean, select, suggest
 from arxivbot.spec import (
     Component,
     Extractor,
@@ -153,3 +153,57 @@ class TestTransparency:
         # A wrong match must be visible to the user, not silent.
         for match in select(transformer, "attention").matched:
             assert match.reason
+
+
+class TestLooseMatching:
+    """People do not type the paper's exact words."""
+
+    @pytest.fixture
+    def spec(self, transformer):
+        return transformer
+
+    @pytest.mark.parametrize(
+        "query,expected",
+        [
+            ("attention block", "Multi-Head Attention"),
+            ("layer norm", "Residual Connection and Layer Normalization"),
+            ("layernorm", "Residual Connection and Layer Normalization"),
+            ("normalisation", "Residual Connection and Layer Normalization"),
+            ("feedforward", "Position-wise Feed-Forward Network"),
+            ("feed-forward", "Position-wise Feed-Forward Network"),
+            ("residual", "Residual Connection and Layer Normalization"),
+        ],
+    )
+    def test_variant_spellings_resolve(self, spec, query, expected):
+        assert expected in select(spec, query).names()
+
+    @pytest.mark.parametrize(
+        "query,expected",
+        [
+            ("ffn", "Position-wise Feed-Forward Network"),
+            ("mha", "Multi-Head Attention"),
+        ],
+    )
+    def test_acronyms_resolve(self, spec, query, expected):
+        # The initials must come from the ordered name; a token set spells
+        # nothing and the acronym would never match.
+        assert expected in select(spec, query).names()
+
+    def test_loose_matching_does_not_match_everything(self, spec):
+        assert select(spec, "convolutional kernel stride").empty
+
+
+class TestDidYouMean:
+    def test_near_miss_gets_suggestions(self, transformer):
+        names = did_you_mean(transformer, "attn")
+        assert names and "Attention" in names[0]
+
+    def test_suggestions_are_real_component_names(self, transformer):
+        actual = {c.name for c in transformer.components}
+        assert set(did_you_mean(transformer, "mlp")) <= actual
+
+    def test_empty_query_suggests_nothing(self, transformer):
+        assert did_you_mean(transformer, "   ") == []
+
+    def test_suggestions_are_capped(self, transformer):
+        assert len(did_you_mean(transformer, "thing", limit=2)) <= 2
