@@ -351,15 +351,29 @@ def landmarks(doc: Document, sections: list[Section]) -> dict[str, list[str]]:
     paper has noise schedules where a transformer has attention heads, but
     both write equations and both cut their method into subsections.
     """
+    # Expand to the children of each matched section. `methodology()` matches
+    # headings by keyword, so it returns "Model Architecture" but not the
+    # "Encoder and Decoder Stacks" beneath it - and that is exactly where a
+    # paper puts the residual connections and the normalisation. Listing only
+    # the matched headings points the model at the wrong parts of its own
+    # structure, and the pieces defined in the unlisted ones go missing.
+    expanded: list[Section] = []
+    for section in sections:
+        if section not in expanded:
+            expanded.append(section)
+        for child in doc.children(section):
+            if child not in expanded:
+                expanded.append(child)
+
     span = (
-        (min(s.start for s in sections), max(s.end for s in sections))
-        if sections
+        (min(s.start for s in expanded), max(s.end for s in expanded))
+        if expanded
         else (0, len(doc.tex))
     )
     inside = lambda start: span[0] <= start < span[1]  # noqa: E731
 
     return {
-        "subsections": [s.title for s in sections if s.level > 1],
+        "subsections": [s.title for s in expanded if s.level > 1],
         "algorithms": [
             env.body.strip().splitlines()[0][:80] if env.body.strip() else env.name
             for env in extract_environments(doc.tex, ALGORITHM_ENVS)
