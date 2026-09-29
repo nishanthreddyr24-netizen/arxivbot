@@ -405,12 +405,24 @@ function paint(raw, done){
   $('code').innerHTML = html + (done ? '' : '<span class="caret"></span>');
 }
 
-/* "the attention block" -> attention_block.py */
+var FILLER = /^(write|give|show|make|create|generate|build|get|me|the|a|an|some|code|of|for|please|i|want|need|to|do|how)$/;
+
+/* "write code of residual stream" -> residual_stream.py */
 function filename(request){
-  var stem = String(request).toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
-    .replace(/^the_/, '').slice(0, 34);
-  return (stem || 'skeleton') + '.py';
+  var words = String(request).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  while (words.length > 1 && FILLER.test(words[0])) words.shift();
+  while (words.length > 1 && FILLER.test(words[words.length - 1])) words.pop();
+  return (words.join('_').slice(0, 34) || 'skeleton') + '.py';
+}
+
+/* The header names the components that were actually selected, which beats
+   anything derived from the request - "residual stream" is the reader's
+   phrase, "Residual Connection" is the paper's. */
+function renameFromHeader(text){
+  var m = text.match(/^# Components: (.+)$/m);
+  if (!m) return;
+  var first = m[1].split(',')[0].trim();
+  if (first) $('fname').textContent = filename(first);
 }
 
 /* A miss is a question, not a dead end: show the nearest names and let the
@@ -450,7 +462,7 @@ function gen(request){
   $('fname').textContent = filename(request);
   $('model').textContent = '';
 
-  var t0 = Date.now(), text = '';
+  var t0 = Date.now(), text = '', named = false;
   fetch('/api/generate?id='+encodeURIComponent(S.id)+'&q='+encodeURIComponent(request))
     .then(function(r){
       if(!r.ok) return r.json().then(function(j){
@@ -473,6 +485,7 @@ function gen(request){
             return;
           }
           text += dec.decode(res.value, {stream:true});
+          if (!named && /^# Components: /m.test(text)){ renameFromHeader(text); named = true; }
           paint(text, false);
           $('code').scrollTop = $('code').scrollHeight;
           return pump();

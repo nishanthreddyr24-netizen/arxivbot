@@ -97,7 +97,12 @@ class RawHyperparameter(BaseModel):
     quote: str | None = Field(
         default=None, description="Verbatim sentence from the paper. Required if stated."
     )
-    applies_to: str | None = None
+    applies_to: str | None = Field(
+        default=None,
+        description="The condition this value holds under, if the paper gives "
+        "one - a model size, a dataset, a phase of training. A value quoted "
+        "without its condition reads as universal when it is not.",
+    )
 
 
 class ComponentSketch(BaseModel):

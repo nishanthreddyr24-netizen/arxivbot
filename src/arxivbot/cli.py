@@ -117,7 +117,8 @@ def _print_spec(spec, source: str | None = None) -> None:
             print(f"      built from: {', '.join(component.depends_on)}")
         for hp in component.hyperparameters[:4]:
             mark = "*" if hp.confidence.value == "stated" else "?"
-            print(f"      {mark} {hp.name} = {hp.value}")
+            scope = f"  ({hp.applies_to})" if hp.applies_to else ""
+            print(f"      {mark} {hp.name} = {hp.value}{scope}")
 
     counts = spec.confidence_breakdown()
     print(f"\nvalues: {counts['stated']} stated, {counts['conventional']} conventional, "

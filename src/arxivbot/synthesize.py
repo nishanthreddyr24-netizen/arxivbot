@@ -65,7 +65,10 @@ def _describe(component: Component) -> str:
     for hp in component.hyperparameters:
         mark = "stated" if hp.confidence is Confidence.STATED else hp.confidence.value
         where = f", {hp.provenance.section}" if hp.provenance else ""
-        lines.append(f"  {hp.name} = {hp.value}  [{mark}{where}]")
+        # Carry the condition through. A default argument silently drops the
+        # "for the base model" a paper attached to the number.
+        scope = f" (holds for: {hp.applies_to})" if hp.applies_to else ""
+        lines.append(f"  {hp.name} = {hp.value}{scope}  [{mark}{where}]")
     return "\n".join(lines)
 
 
