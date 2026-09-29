@@ -207,3 +207,36 @@ class TestDidYouMean:
 
     def test_suggestions_are_capped(self, transformer):
         assert len(did_you_mean(transformer, "thing", limit=2)) <= 2
+
+
+class TestPromptDiscipline:
+    """The generated body must be as trustworthy as the derived header."""
+
+    def _prompt(self, spec, query):
+        from arxivbot.deviation import check
+        from arxivbot.select import select
+        from arxivbot.synthesize import prompt
+
+        selection = select(spec, query)
+        return prompt(spec, selection, check(spec, query, selection.components), query)
+
+    def test_omitted_components_are_named(self, transformer):
+        # Given one half of a pair the paper defines together, a model with no
+        # way to know the other exists reports the hole as an ambiguity.
+        text = self._prompt(transformer, "scaled dot-product attention")
+        assert "COMPONENTS NOT INCLUDED" in text
+        assert "Position-wise Feed-Forward Network" in text
+
+    def test_gapless_selection_forbids_todos(self, transformer):
+        text = self._prompt(transformer, "feed forward")
+        if "WHAT THE PAPER NEVER STATES:" in text:
+            assert "no TODO(paper-silent) markers at all" in text
+
+    def test_listed_gaps_are_the_only_ones_allowed(self, transformer):
+        text = self._prompt(transformer, "attention")
+        assert "and none besides" in text
+
+    def test_citable_sections_come_from_provenance(self, transformer):
+        text = self._prompt(transformer, "attention")
+        assert "SECTIONS YOU MAY CITE" in text
+        assert "Model Architecture" in text

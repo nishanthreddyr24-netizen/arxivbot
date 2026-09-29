@@ -22,13 +22,26 @@ You are given what a paper states about a component, and what it leaves
 unsaid. Write PyTorch unless told otherwise.
 
 Rules:
-- Implement only what the spec supports. Where the paper is silent, leave a
-  `# TODO(paper-silent):` comment naming the decision - never quietly pick a
-  value and move on.
-- Cite the paper in comments for shapes, constants and equations, using the
-  section given in the spec.
+- Implement only what the spec supports.
+
+- `# TODO(paper-silent):` is reserved. Use it ONLY for the gaps listed under
+  WHAT THE PAPER NEVER STATES, one marker per listed gap, and invent no
+  others. These markers are the reader's list of decisions they must make,
+  and a marker on something the paper does specify makes the whole list
+  untrustworthy. If you are unsure about anything not on that list, write an
+  ordinary comment - never a TODO.
+
+- Cite sections by the titles given in the spec, copied exactly. Do not write
+  section numbers: you do not know them, and a wrong one is worse than none.
+
+- You are given only part of the paper. Components listed as NOT INCLUDED are
+  real and were simply not requested - refer to one by name where the code
+  needs it and move on. Never describe an absent component as unspecified,
+  ambiguous or missing from the paper.
+
 - Annotate tensor shapes on every forward pass, using the paper's own
-  dimension names.
+  dimension names. A shape annotation is not a decision - do not mark it.
+
 - Prefer clear, plain code over clever code. No training loop unless asked.
 - Output only code in a single ```python block. No prose before or after."""
 
@@ -120,13 +133,35 @@ def prompt(
     ]
     parts.extend(_describe(c) for c in selection.components)
 
-    if selection.unknowns:
+    # Name what was left out. Given one component of a pair the paper defines
+    # together, a model with no way to know the other exists will describe the
+    # hole as an ambiguity in the paper - inventing a gap where there is none.
+    chosen = {c.name for c in selection.components}
+    omitted = [c.name for c in spec.components if c.name not in chosen]
+    if omitted:
         parts.append("")
-        parts.append("WHAT THE PAPER NEVER STATES - leave a TODO for each, do not guess:")
+        parts.append(
+            "COMPONENTS NOT INCLUDED - these exist in the paper and were simply "
+            "not requested. Refer to one by name if the code needs it. Do not "
+            "call any of them unspecified:"
+        )
+        parts.extend(f"  {name}" for name in omitted)
+
+    parts.append("")
+    if selection.unknowns:
+        parts.append(
+            "WHAT THE PAPER NEVER STATES - write exactly one "
+            "`# TODO(paper-silent):` for each of these, and none besides:"
+        )
         for unknown in selection.unknowns:
             parts.append(f"  [{unknown.severity.value}] {unknown.question}")
             if unknown.conventional_default:
                 parts.append(f"      commonly: {unknown.conventional_default}")
+    else:
+        parts.append(
+            "WHAT THE PAPER NEVER STATES: nothing recorded for these "
+            "components. Write no TODO(paper-silent) markers at all."
+        )
 
     conflicts = [d for d in deviations if d.stance is Stance.DEVIATES]
     if conflicts:
@@ -137,6 +172,34 @@ def prompt(
                 f"  {deviation.axis}: use {deviation.requested}; "
                 f"the paper uses {deviation.paper_says}"
             )
+
+    # The sections it is allowed to name. Left to itself the model writes
+    # section numbers from memory of the paper's layout, and gets them wrong:
+    # it put the residual formula in "Section 5.4" when the paper states it
+    # under Encoder and Decoder Stacks.
+    sections = sorted(
+        {
+            hp.provenance.section
+            for component in selection.components
+            for hp in component.hyperparameters
+            if hp.provenance
+        }
+        | {
+            eq.provenance.section
+            for component in selection.components
+            for eq in component.equations
+            if eq.provenance
+        }
+        | {
+            component.provenance.section
+            for component in selection.components
+            if component.provenance
+        }
+    )
+    if sections:
+        parts.append("")
+        parts.append("SECTIONS YOU MAY CITE, copied exactly, without numbers:")
+        parts.extend(f"  {title}" for title in sections)
 
     parts.append("")
     parts.append("Write the skeleton now.")

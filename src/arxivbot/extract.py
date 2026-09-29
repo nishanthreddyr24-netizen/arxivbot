@@ -576,6 +576,20 @@ def extract(
         except LLMError as exc:
             report.warnings.append(f"unknowns: {exc}")
 
+    # A depends_on naming something that was never extracted is an artifact of
+    # this run, not a property of the paper. The graph walk drops it silently,
+    # so it has to be recorded here or it goes unnoticed - "Residual Connection
+    # depends on Sublayer" looked fine until someone asked why the residual
+    # came back without the layer normalisation it is defined with.
+    known = {component.name.lower() for component in components}
+    for component in components:
+        for dependency in component.depends_on:
+            if dependency.lower() not in known:
+                report.warnings.append(
+                    f"{component.name}: depends on {dependency!r}, which was not "
+                    "extracted as a component"
+                )
+
     spec = ImplementationSpec(
         arxiv_id=doc.meta.arxiv_id,
         title=doc.meta.title,
