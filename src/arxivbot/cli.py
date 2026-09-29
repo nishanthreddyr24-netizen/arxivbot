@@ -93,6 +93,8 @@ def _spec(args: argparse.Namespace) -> int:
     print(f"\n{report.calls} model calls")
     if (accuracy := report.quote_accuracy) is not None:
         print(f"quotes verified against the source: {accuracy:.0%}")
+    if report.recovered:
+        print(f"found only by the second pass: {', '.join(report.recovered)}")
     if report.demoted:
         print(f"claimed as stated but unverifiable: {', '.join(report.demoted[:6])}")
     for warning in report.warnings:

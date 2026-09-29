@@ -121,6 +121,10 @@ class Inventory(BaseModel):
     components: list[ComponentSketch]
 
 
+class Missing(BaseModel):
+    components: list[ComponentSketch] = Field(default_factory=list)
+
+
 class ComponentDetail(BaseModel):
     inputs: list[RawTensor] = Field(default_factory=list)
     outputs: list[RawTensor] = Field(default_factory=list)
@@ -286,6 +290,9 @@ class Report:
     demoted: list[str] = field(default_factory=list)
     """Claims marked stated whose quote was not found in the paper."""
 
+    recovered: list[str] = field(default_factory=list)
+    """Components the first pass missed and the second pass found."""
+
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -426,6 +433,46 @@ def _inventory(doc: Document, config: LLMConfig, report: Report) -> Inventory:
     return complete_json(prompt, Inventory, system=SYSTEM, config=config)
 
 
+def _missing(
+    doc: Document,
+    found: list[ComponentSketch],
+    config: LLMConfig,
+    report: Report,
+) -> Missing:
+    """Ask what the first pass left out.
+
+    Landmarks are headings, equations and algorithm blocks, so a piece the
+    paper describes only in a sentence has no landmark and structural
+    grounding cannot reach it - which is how residual connections and layer
+    normalisation went missing from ten consecutive runs. They are introduced
+    by a clause: "we employ a residual connection around each of the two
+    sub-layers, followed by layer normalization".
+
+    This pass asks about the relationship rather than the thing. Nothing here
+    names a part of any particular architecture, so it reads the same way over
+    a sampler, a target network or a message-passing step.
+    """
+    sections = doc.methodology() or doc.sections[:6]
+    listed = "\n".join(f"  - {c.name}: {c.role}" for c in found)
+    prompt = (
+        f"Paper: {doc.meta.title}\n\n"
+        "These components have already been recorded from this paper:\n\n"
+        f"{listed}\n\n"
+        "Read the method text again and look for what is not in that list. "
+        "In particular, anything applied to, around, or between the recorded "
+        "components, or that every one of them passes through. A paper often "
+        "introduces such a piece in a clause rather than under a heading or an "
+        "equation of its own, which is exactly how it escapes a first reading "
+        "- but a reimplementer still has to write it.\n\n"
+        "List only what is genuinely absent above. Returning an empty list is "
+        "a correct answer when nothing is missing; do not pad it, and do not "
+        "restate something already recorded under a different name.\n\n"
+        f"{_text_of(sections, doc)}"
+    )
+    report.calls += 1
+    return complete_json(prompt, Missing, system=SYSTEM, config=config)
+
+
 def _detail(
     sketch: ComponentSketch, doc: Document, config: LLMConfig, report: Report
 ) -> ComponentDetail:
@@ -507,6 +554,7 @@ def extract(
     max_components: int = 8,
     with_training: bool = True,
     with_unknowns: bool = True,
+    with_missing: bool = True,
 ) -> tuple[ImplementationSpec, Report]:
     """Read a paper and build a spec from it.
 
@@ -519,8 +567,20 @@ def extract(
 
     inventory = _inventory(doc, config, report)
 
+    sketches = list(inventory.components)
+    if with_missing and sketches:
+        try:
+            seen = {s.name.strip().lower() for s in sketches}
+            for sketch in _missing(doc, sketches, config, report).components:
+                if sketch.name.strip().lower() not in seen:
+                    seen.add(sketch.name.strip().lower())
+                    sketches.append(sketch)
+                    report.recovered.append(sketch.name)
+        except LLMError as exc:
+            report.warnings.append(f"missing-components pass: {exc}")
+
     components: list[Component] = []
-    for sketch in inventory.components[:max_components]:
+    for sketch in sketches[:max_components]:
         try:
             detail = _detail(sketch, doc, config, report)
         except LLMError as exc:
