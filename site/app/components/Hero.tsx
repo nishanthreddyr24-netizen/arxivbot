@@ -3,9 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const TARGETS = ["PyTorch", "JAX", "NumPy"] as const;
-type Target = (typeof TARGETS)[number];
-
 /** Sample requests, filled into the form on click. Real papers, real sections. */
 const EXAMPLES = [
   { paper: "2310.06825", query: "the sliding-window attention block" },
@@ -28,7 +25,6 @@ export function Hero() {
 
   const [paper, setPaper] = useState("");
   const [query, setQuery] = useState("");
-  const [target, setTarget] = useState<Target>("PyTorch");
   const [error, setError] = useState<string | null>(null);
 
   // "/" jumps to the paper field, the way a listing page does. Ignored while
@@ -58,7 +54,7 @@ export function Hero() {
       return;
     }
     setError(null);
-    const params = new URLSearchParams({ paper: id, q: query.trim(), target });
+    const params = new URLSearchParams({ paper: id, q: query.trim() });
     router.push(`/app?${params.toString()}`);
   }
 
@@ -74,7 +70,7 @@ export function Hero() {
     "placeholder:text-faint focus:outline-none";
 
   return (
-    <section className="mx-auto max-w-[1120px] px-4 pb-16 pt-16 sm:px-6 sm:pt-24">
+    <section className="mx-auto max-w-[1120px] px-4 pb-14 pt-12 sm:px-6 sm:pt-16">
       <h1 className="max-w-[20ch] text-[clamp(2rem,5.5vw,3.25rem)] font-normal leading-[1.14] tracking-[-0.02em] text-ink">
         Paste a paper. Ask for a component. Get the code.
       </h1>
@@ -150,37 +146,10 @@ export function Hero() {
         </p>
       ) : null}
 
-      <div className="mt-6 flex flex-wrap items-center gap-6">
-        <div
-          role="group"
-          aria-label="Output language"
-          className="flex border border-hairline"
-        >
-          {TARGETS.map((option) => {
-            const active = option === target;
-            return (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setTarget(option)}
-                className={[
-                  "border-r border-hairline px-4 py-2 font-mono text-[12px] transition-colors last:border-r-0",
-                  active
-                    ? "text-red-ink"
-                    : "text-muted hover:text-ink",
-                ].join(" ")}
-              >
-                {option}
-              </button>
-            );
-          })}
-        </div>
-        <p className="font-mono text-[12px] text-faint">
-          <kbd className="text-muted">/</kbd> to focus &middot;{" "}
-          <kbd className="text-muted">⌘↵</kbd> to run
-        </p>
-      </div>
+      <p className="mt-5 font-mono text-[12px] text-faint">
+        <kbd className="text-muted">/</kbd> to focus &middot;{" "}
+        <kbd className="text-muted">&#8984;&crarr;</kbd> to run
+      </p>
 
       <ul id="examples" className="mt-10 max-w-[760px] border-t border-hairline">
         {EXAMPLES.map((example) => (
