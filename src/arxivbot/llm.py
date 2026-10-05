@@ -177,11 +177,26 @@ def gemini_schema(model: type) -> dict:
 # ------------------------------------------------------------- transport ----
 
 
-def _cache_path(payload: str) -> Path:
-    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
-    folder = cache_dir() / "llm"
-    folder.mkdir(parents=True, exist_ok=True)
-    return folder / f"{digest}.json"
+def _cache_key(payload: str) -> str:
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32] + ".json"
+
+
+def _cached(key: str) -> str | None:
+    from arxivbot.storage import LLM, store
+
+    raw = store().get_text(LLM, key)
+    if raw is None:
+        return None
+    try:
+        return json.loads(raw)["text"]
+    except (ValueError, KeyError):
+        return None
+
+
+def _remember(key: str, identity: str, text: str) -> None:
+    from arxivbot.storage import LLM, store
+
+    store().put_text(LLM, key, json.dumps({"model": identity, "text": text}))
 
 
 def _retryable(status: int) -> bool:
@@ -306,12 +321,9 @@ def complete(
         },
         sort_keys=True,
     )
-    cached = _cache_path(fingerprint)
-    if config.use_cache and cached.exists():
-        try:
-            return json.loads(cached.read_text(encoding="utf-8"))["text"]
-        except (ValueError, KeyError, OSError):
-            pass
+    key = _cache_key(fingerprint)
+    if config.use_cache and (hit := _cached(key)) is not None:
+        return hit
 
     if config.provider == "gemini":
         text = _call_gemini(prompt, system, schema, config)
@@ -321,12 +333,7 @@ def complete(
         raise LLMError(f"unknown provider {config.provider!r}; expected gemini or openai")
 
     if config.use_cache:
-        try:
-            cached.write_text(
-                json.dumps({"model": config.identity, "text": text}), encoding="utf-8"
-            )
-        except OSError:
-            pass
+        _remember(key, config.identity, text)
     return text
 
 
@@ -381,15 +388,11 @@ def stream(
         },
         sort_keys=True,
     )
-    cached = _cache_path(fingerprint)
-    if config.use_cache and cached.exists():
-        try:
-            text = json.loads(cached.read_text(encoding="utf-8"))["text"]
-            for i in range(0, len(text), 96):
-                yield text[i : i + 96]
-            return
-        except (ValueError, KeyError, OSError):
-            pass
+    key = _cache_key(fingerprint)
+    if config.use_cache and (hit := _cached(key)) is not None:
+        for index in range(0, len(hit), 96):
+            yield hit[index : index + 96]
+        return
 
     if config.provider != "gemini":
         # One non-streaming call, handed over whole. Better than failing.
@@ -437,10 +440,4 @@ def stream(
         raise LLMError(f"stream failed: {exc}") from exc
 
     if config.use_cache and collected:
-        try:
-            cached.write_text(
-                json.dumps({"model": config.identity, "text": "".join(collected)}),
-                encoding="utf-8",
-            )
-        except OSError:
-            pass
+        _remember(key, config.identity, "".join(collected))

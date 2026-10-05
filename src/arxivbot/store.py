@@ -85,20 +85,24 @@ def local_path(arxiv_id: str) -> Path:
     return specs_dir() / f"{_key(arxiv_id)}.json"
 
 
-def _newest_local_version(arxiv_id: str) -> Path | None:
+def _newest_stored_version(arxiv_id: str) -> str | None:
     """Highest-numbered stored version of an unversioned id.
 
     Specs are filed under the version they describe, but almost nobody types
     a version number. Without this, the ordinary `1706.03762` never matches
     the stored `1706.03762v7.json`.
     """
+    from arxivbot.storage import SPEC, store
+
+    prefix = _key(arxiv_id)
     matches = []
-    for path in specs_dir().glob(f"{_key(arxiv_id)}v*.json"):
-        if match := _VERSION_RE.search(path.stem):
-            matches.append((int(match.group(1)), path))
-    if not matches:
-        return None
-    return max(matches)[1]
+    for name in store().keys(SPEC):
+        stem = name[:-5] if name.endswith(".json") else name
+        if not stem.startswith(prefix):
+            continue
+        if match := _VERSION_RE.search(stem):
+            matches.append((int(match.group(1)), name))
+    return max(matches)[1] if matches else None
 
 
 def resolve_version(arxiv_id: str) -> str:
@@ -118,21 +122,23 @@ def _check(spec: ImplementationSpec, source: Source) -> Hit:
 
 
 def get_local(arxiv_id: str) -> Hit | None:
-    """Look for a spec already on this machine.
+    """Look for a spec already stored here.
 
     An unversioned id matches the newest stored version of that paper.
     """
-    path = local_path(arxiv_id)
-    if not path.exists():
-        if has_version(arxiv_id):
-            return None
-        path = _newest_local_version(arxiv_id)
-        if path is None:
-            return None
+    from arxivbot.storage import SPEC, store
+
+    name = f"{_key(arxiv_id)}.json"
+    raw = store().get_text(SPEC, name)
+    if raw is None and not has_version(arxiv_id):
+        if newest := _newest_stored_version(arxiv_id):
+            raw = store().get_text(SPEC, newest)
+    if raw is None:
+        return None
     try:
-        return _check(ImplementationSpec.load(path), "local")
-    except (ValueError, OSError):
-        # A corrupt or schema-incompatible file should not be fatal; treat it
+        return _check(ImplementationSpec.model_validate_json(raw), "local")
+    except ValueError:
+        # A corrupt or schema-incompatible entry should not be fatal; treat it
         # as a miss so the caller can re-extract over it.
         return None
 
@@ -162,10 +168,7 @@ def get_shared(arxiv_id: str, *, timeout: float = 15.0) -> Hit | None:
         return None
 
     # Keep it, so this paper works offline from now on.
-    try:
-        spec.save(local_path(arxiv_id))
-    except OSError:
-        pass
+    put(spec)
     return _check(spec, "shared")
 
 
@@ -189,13 +192,19 @@ def get(arxiv_id: str, *, use_shared: bool = True) -> Hit | None:
     return get_shared(pinned)
 
 
-def put(spec: ImplementationSpec) -> Path:
-    """Store a freshly extracted spec locally."""
-    return spec.save(local_path(spec.arxiv_id))
+def put(spec: ImplementationSpec) -> str:
+    """Store a freshly extracted spec."""
+    from arxivbot.storage import SPEC, store
+
+    name = f"{_key(spec.arxiv_id)}.json"
+    store().put_text(SPEC, name, spec.to_json())
+    return name
 
 
-def list_local() -> list[Path]:
-    return sorted(specs_dir().glob("*.json"))
+def list_local() -> list[str]:
+    from arxivbot.storage import SPEC, store
+
+    return [k for k in store().keys(SPEC) if k.endswith(".json")]
 
 
 def export_for_contribution(arxiv_id: str, dest: Path) -> Path:

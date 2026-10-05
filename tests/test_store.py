@@ -86,9 +86,11 @@ class TestRoundTrip:
         hit = store.get_local("1234.56789v1")
         assert hit is not None and hit.stale is True
 
-    def test_corrupt_file_is_a_miss_not_a_crash(self):
-        store.put(make_spec("1111.11111v1"))
-        store.local_path("1111.11111v1").write_text("{not json", encoding="utf-8")
+    def test_corrupt_entry_is_a_miss_not_a_crash(self):
+        from arxivbot.storage import SPEC, store as backend
+
+        name = store.put(make_spec("1111.11111v1"))
+        backend().put_text(SPEC, name, "{not json")
         assert store.get_local("1111.11111v1") is None
 
 

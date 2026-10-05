@@ -187,11 +187,14 @@ def fetch_source(arxiv_id: str, *, refresh: bool = False, timeout: float = 60.0)
     gzipped ``.tex`` file, or occasionally a bare PDF for submissions that had
     no source. :func:`arxivbot.ingest.latex.unpack` sorts that out.
     """
-    ident = parse_id(arxiv_id)
-    blob = cache_dir() / f"{ident.replace('/', '_')}.eprint"
+    # Aliased on import: this module already uses EPRINT for the URL template.
+    from arxivbot.storage import EPRINT as EPRINT_BUCKET
+    from arxivbot.storage import store
 
-    if blob.exists() and not refresh:
-        return blob.read_bytes()
+    ident = parse_id(arxiv_id)
+    if not refresh:
+        if cached := store().get(EPRINT_BUCKET, ident):
+            return cached
 
     _throttle()
     try:
@@ -208,7 +211,7 @@ def fetch_source(arxiv_id: str, *, refresh: bool = False, timeout: float = 60.0)
     if not response.content:
         raise FetchError(f"arXiv returned an empty source archive for {ident}")
 
-    blob.write_bytes(response.content)
+    store().put(EPRINT_BUCKET, ident, response.content)
     return response.content
 
 
@@ -219,10 +222,13 @@ def fetch_pdf(arxiv_id: str, *, timeout: float = 60.0) -> bytes:
     a local page can show the paper next to what was extracted from it, served
     from here rather than framed from arxiv.org.
     """
+    # Aliased: this module already uses PDF for the URL template.
+    from arxivbot.storage import PDF as PDF_BUCKET
+    from arxivbot.storage import store
+
     ident = parse_id(arxiv_id)
-    blob = cache_dir() / f"{ident.replace('/', '_')}.pdf"
-    if blob.exists():
-        return blob.read_bytes()
+    if cached := store().get(PDF_BUCKET, ident):
+        return cached
 
     _throttle()
     try:
@@ -239,7 +245,7 @@ def fetch_pdf(arxiv_id: str, *, timeout: float = 60.0) -> bytes:
     if not response.content.startswith(b"%PDF-"):
         raise FetchError(f"arXiv did not return a PDF for {ident}")
 
-    blob.write_bytes(response.content)
+    store().put(PDF_BUCKET, ident, response.content)
     return response.content
 
 

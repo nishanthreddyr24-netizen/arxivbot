@@ -7,6 +7,7 @@ paper comes back structurally intact before any model is involved.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 from arxivbot.ingest import build_document, load
@@ -63,6 +64,9 @@ def _spec(args: argparse.Namespace) -> int:
 
     if not args.refresh:
         if hit := store.get(args.arxiv_id):
+            if args.json:
+                print(_as_json(hit.spec, source=hit.source))
+                return 0
             print(f"found an existing spec ({hit.source}) - pass --refresh to redo it\n")
             _print_spec(hit.spec, source=hit.source)
             return 0
@@ -88,6 +92,11 @@ def _spec(args: argparse.Namespace) -> int:
         return 1
 
     path = store.put(spec)
+
+    if args.json:
+        print(_as_json(spec, report=report, path=path))
+        return 0
+
     _print_spec(spec)
 
     print(f"\n{report.calls} model calls")
@@ -101,6 +110,31 @@ def _spec(args: argparse.Namespace) -> int:
         print(f"warning: {warning}")
     print(f"\nsaved to {path}")
     return 0
+
+
+def _as_json(spec, *, report=None, path=None, source: str | None = None) -> str:
+    """The spec as one JSON object, for another process to consume.
+
+    Both the cached and the freshly extracted paths go through here, so a
+    caller cannot tell them apart except by `cached`, and never has to parse
+    output meant for a person.
+    """
+    return json.dumps(
+        {
+            "spec": json.loads(spec.to_json()),
+            "counts": spec.confidence_breakdown(),
+            "cached": report is None,
+            "source": source,
+            "report": {
+                "calls": getattr(report, "calls", 0),
+                "quote_accuracy": getattr(report, "quote_accuracy", None),
+                "recovered": getattr(report, "recovered", []),
+                "rejected": getattr(report, "rejected", []),
+                "warnings": getattr(report, "warnings", []),
+            },
+            "path": str(path) if path else None,
+        }
+    )
 
 
 def _print_spec(spec, source: str | None = None) -> None:
@@ -183,6 +217,38 @@ def _ask(args: argparse.Namespace) -> int:
     return 0
 
 
+def _emit(args: argparse.Namespace) -> int:
+    """Stream a skeleton to stdout, unbuffered, for another process to relay.
+
+    Separate from `ask`, which formats for a person. This writes the code and
+    nothing else, flushing as it goes so a reader sees tokens arrive rather
+    than waiting out the whole generation.
+    """
+    from arxivbot import store
+    from arxivbot.deviation import check
+    from arxivbot.select import did_you_mean, select, suggest
+    from arxivbot.synthesize import generate
+
+    hit = store.get(args.arxiv_id)
+    if hit is None:
+        print(f"# no spec for {args.arxiv_id}; extract it first", file=sys.stderr)
+        return 1
+
+    selection = select(hit.spec, args.query)
+    if selection.empty:
+        close = did_you_mean(hit.spec, args.query)
+        print("# no component in the extracted spec matches that.", file=sys.stderr)
+        print(f"# did you mean: {', '.join(close) or '-'}", file=sys.stderr)
+        print(f"# it covers: {', '.join(suggest(hit.spec))}", file=sys.stderr)
+        return 2
+
+    deviations = check(hit.spec, args.query, selection.components)
+    for chunk in generate(hit.spec, selection, deviations, args.query):
+        sys.stdout.write(chunk)
+        sys.stdout.flush()
+    return 0
+
+
 def _serve(args: argparse.Namespace) -> int:
     from arxivbot.server import serve
 
@@ -231,12 +297,20 @@ def main(argv: list[str] | None = None) -> int:
     spec.add_argument("--refresh", action="store_true", help="re-extract even if cached")
     spec.add_argument("--model", help="override the model, e.g. gemini-3.6-flash")
     spec.add_argument("--max-components", type=int, default=10)
+    spec.add_argument(
+        "--json", action="store_true", help="emit the spec as JSON on stdout"
+    )
     spec.set_defaults(func=_spec)
 
     ask = sub.add_parser("ask", help="ask a paper's spec about one part of it")
     ask.add_argument("arxiv_id", help="arXiv id or URL")
     ask.add_argument("query", help="what you want, e.g. 'the attention block'")
     ask.set_defaults(func=_ask)
+
+    emit = sub.add_parser("emit", help="stream a skeleton to stdout")
+    emit.add_argument("arxiv_id", help="arXiv id or URL")
+    emit.add_argument("query", help="what you want")
+    emit.set_defaults(func=_emit)
 
     web = sub.add_parser("serve", help="open the local web interface")
     web.add_argument("--port", type=int, default=8000)

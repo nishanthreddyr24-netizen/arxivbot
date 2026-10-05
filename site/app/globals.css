@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Every colour, font and size the site uses is declared here and nowhere else.
+   Components reference these by name; a raw hex value in a component is a bug.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  /* Ground and surfaces. Warm near-black, never pure black - pure black on an
+     OLED panel reads as a hole in the page rather than a background. */
+  --color-ground: #0d0c0b;
+  --color-surface: #141312;
+  --color-hairline: #2a2826;
+  --color-hairline-strong: #3a3734;
+
+  /* Text. Warm off-white, never pure white: #fff on near-black vibrates. */
+  --color-ink: #e8e4dc;
+  --color-muted: #8a847a;
+  --color-faint: #5f5a53;
+
+  /* The one accent. `fill` is for the single filled element per viewport;
+     `ink` is the only red safe as text on this ground (7.2:1, passes AA). */
+  --color-red-fill: #d92d20;
+  --color-red-ink: #ff5a4d;
+  --color-red-dim: #7d2b24;
+
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, Menlo, Consolas, monospace;
+
+  --radius-none: 0px;
+  --radius-xs: 2px;
+
+  /* 8px grid. */
+  --spacing: 8px;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One focus treatment for the whole site, so nothing can quietly ship without
+   a visible keyboard state. */
+:focus-visible {
+  outline: 2px solid var(--color-red-ink);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+::selection {
+  background: var(--color-red-dim);
+  color: var(--color-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
