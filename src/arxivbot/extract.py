@@ -122,6 +122,17 @@ class Inventory(BaseModel):
     components: list[ComponentSketch]
 
 
+class UnitComponents(BaseModel):
+    """What one section of the method needs implemented.
+
+    Deliberately not `Inventory`: a per-unit call reusing that schema spends
+    its output budget writing a summary of a single paragraph, and a longer
+    section then truncates mid-string and fails to parse.
+    """
+
+    components: list[ComponentSketch] = Field(default_factory=list)
+
+
 class Missing(BaseModel):
     components: list[ComponentSketch] = Field(default_factory=list)
 
@@ -466,7 +477,7 @@ def units(doc: Document, sections: list[Section]) -> list[Section]:
 
 def _unit_inventory(
     unit: Section, doc: Document, config: LLMConfig, report: Report
-) -> Inventory:
+) -> UnitComponents:
     prompt = (
         f"Paper: {doc.meta.title}\n"
         f"Section: {unit.title}\n\n"
@@ -482,7 +493,7 @@ def _unit_inventory(
         f"{doc.content(unit)[:12000]}"
     )
     report.calls += 1
-    return complete_json(prompt, Inventory, system=SYSTEM, config=config)
+    return complete_json(prompt, UnitComponents, system=SYSTEM, config=config)
 
 
 _REPO_RE = re.compile(
@@ -545,7 +556,14 @@ def _consolidate(
     if len(proposals) < 2:
         return proposals
 
-    listed = "\n".join(f"  {s.name}: {s.role}" for s in proposals)
+    # Names with a clipped role. The full roles are near-verbatim paper
+    # sentences, and echoing a list of them back makes the reply look to the
+    # provider like a copy of the source - it refuses the call outright
+    # (finishReason RECITATION) and pruning is skipped in silence. Names
+    # alone dodge that but leave nothing to judge by, and operations like
+    # "Concat" then read as plausible components. A clipped phrase is enough
+    # context and short enough not to trip the filter.
+    listed = "\n".join(f"  {s.name} - {s.role[:70]}" for s in proposals)
     prompt = (
         f"Paper: {doc.meta.title}\n\n"
         "Each line below was proposed as a component of this paper's method. "
@@ -554,9 +572,17 @@ def _consolidate(
         "as a function, class or module of its own?\n"
         "  yes: a block, a layer, a transformation, a schedule, a loss, a "
         "sampler, anything with inputs and outputs of its own\n"
-        "  no:  a symbol from an equation; a single arithmetic step; a "
-        "position in a list rather than a thing; a setting or a constant; "
-        "the complete model, which is all of these together\n\n"
+        "  no:  a symbol from an equation; a single tensor operation such as "
+        "a concatenation, a reshape, a projection or an activation, which is "
+        "a line inside whatever uses it rather than a unit of its own; a "
+        "position in a list rather than a thing; a setting or a constant; the "
+        "complete model, which is all of these together\n\n"
+        "When a proposal could be read either way, keep it. A spurious "
+        "component is visible to the reader and can be ignored; a missing one "
+        "is reported to them as the paper not covering it, which is the "
+        "failure this whole pipeline exists to prevent. Instructed to be "
+        "strict here, this step removed the residual connection and the "
+        "multi-head attention while leaving the word \"sub-layer\" in place.\n\n"
         "CANONICAL_NAME - the clearest name for the thing itself. Proposals "
         "that name one thing must be given the same canonical name, however "
         "differently they were phrased. Use the paper's wording.\n\n"
@@ -624,11 +650,11 @@ def _inventory_units(doc: Document, config: LLMConfig, report: Report) -> Invent
         except LLMError as exc:
             report.warnings.append(f"unit {unit.title!r}: {exc}")
 
-    merged = _merge(sketches)
+    merged = _consolidate(_merge(sketches), doc, config, report)
     return Inventory(
         summary=doc.meta.abstract,
         official_repo=official_repo(doc),
-        components=_consolidate(merged, doc, config, report),
+        components=_remap(merged),
     )
 
 
@@ -648,6 +674,30 @@ _NAME_NOISE = frozenset(
     "the a an of and or for to in on with its module layer block component "
     "mechanism function networks network".split()
 )
+
+
+def _remap(components: list[ComponentSketch]) -> list[ComponentSketch]:
+    """Point every depends_on at the name its target ended up with.
+
+    Merging and consolidation both rename things, and a dependency still
+    spelled the old way resolves to nothing. The graph walk then drops it in
+    silence, so asking for the decoder returns the decoder by itself.
+    """
+    canon = {_canonical(c.name): c.name for c in components}
+    for component in components:
+        fixed: list[str] = []
+        for dependency in component.depends_on:
+            key = _canonical(dependency)
+            target = canon.get(key)
+            if target is None:
+                for existing, name in canon.items():
+                    if _subsumes(existing, key):
+                        target = name
+                        break
+            if target and target != component.name and target not in fixed:
+                fixed.append(target)
+        component.depends_on = fixed
+    return components
 
 
 def _subsumes(a: str, b: str) -> bool:
