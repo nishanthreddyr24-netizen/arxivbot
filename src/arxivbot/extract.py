@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from functools import lru_cache
 
 from pydantic import BaseModel, Field
@@ -293,6 +294,9 @@ class Report:
     recovered: list[str] = field(default_factory=list)
     """Components the first pass missed and the second pass found."""
 
+    rejected: list[str] = field(default_factory=list)
+    """Proposals consolidation judged not to be implementable units."""
+
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -433,6 +437,270 @@ def _inventory(doc: Document, config: LLMConfig, report: Report) -> Inventory:
     return complete_json(prompt, Inventory, system=SYSTEM, config=config)
 
 
+# A unit smaller than this is a stub heading, not something to read.
+MIN_UNIT_CHARS = 180
+
+
+def units(doc: Document, sections: list[Section]) -> list[Section]:
+    """The smallest pieces of the method worth reading on their own.
+
+    One call over sixteen thousand characters asked "what is in here?" loses
+    things: residual connections survive in a single clause, and a reader
+    skimming for headline contributions walks past it. The same clause inside
+    a six-hundred-character paragraph has nowhere to hide.
+
+    Recall is a function of scope, so the unit is a leaf - a subsection or a
+    paragraph with no children of its own - rather than a whole section.
+    """
+    out: list[Section] = []
+    for section in sections:
+        children = doc.children(section)
+        leaves = [c for c in children if not doc.children(c)]
+        for candidate in leaves or [section]:
+            if candidate in out:
+                continue
+            if len(doc.content(candidate)) >= MIN_UNIT_CHARS:
+                out.append(candidate)
+    return out
+
+
+def _unit_inventory(
+    unit: Section, doc: Document, config: LLMConfig, report: Report
+) -> Inventory:
+    prompt = (
+        f"Paper: {doc.meta.title}\n"
+        f"Section: {unit.title}\n\n"
+        "Read only the text below. What would someone reimplementing this "
+        "paper have to write in order to realise it? Name each piece the way "
+        "this text names it.\n\n"
+        "Include anything applied to, around or between the others - a "
+        "connection, a normalisation, a mask, a projection - even where it is "
+        "mentioned in passing rather than given a definition of its own. "
+        "Mentioned in passing still has to be written.\n\n"
+        "Nothing here may be left out on the grounds that it is minor, and "
+        "nothing may be added that this text does not support.\n\n"
+        f"{doc.content(unit)[:12000]}"
+    )
+    report.calls += 1
+    return complete_json(prompt, Inventory, system=SYSTEM, config=config)
+
+
+_REPO_RE = re.compile(
+    r"https?://(?:www\.)?(?:github\.com|gitlab\.com|bitbucket\.org)/"
+    r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",
+)
+
+
+def official_repo(doc: Document) -> str | None:
+    """The implementation URL the paper prints, found by reading it.
+
+    A model asked for this will sometimes supply the repository the paper
+    *ought* to have. A regular expression can only return a string that is
+    actually in the source.
+    """
+    for match in _REPO_RE.finditer(doc.tex):
+        url = match.group(0).rstrip(".,);")
+        if not url.endswith((".sty", ".cls")):
+            return url
+    return None
+
+
+class Judgement(BaseModel):
+    name: str = Field(description="The proposed name, copied exactly")
+    implementable: bool = Field(
+        description="True if this is a unit someone writes as a function, "
+        "class or module of its own"
+    )
+    canonical_name: str = Field(
+        description="The clearest name for this thing, as the paper would "
+        "put it. Proposals that are the same thing must share one."
+    )
+    defining_quote: str | None = Field(
+        default=None,
+        description="The sentence in the paper that introduces this thing, "
+        "verbatim. Leave null if the paper never introduces it as a thing.",
+    )
+
+
+class Consolidated(BaseModel):
+    components: list[Judgement] = Field(default_factory=list)
+
+
+def _consolidate(
+    proposals: list[ComponentSketch], doc: Document, config: LLMConfig, report: Report
+) -> list[ComponentSketch]:
+    """Prune generous proposals down to the units a person would write.
+
+    Reading each section separately recovers what a single pass misses, and
+    also proposes a variable from an equation, the name of an operation, a
+    positional reference like "third sub-layer", and the model as a whole.
+    Recall was the hard problem; precision is recoverable afterwards, and this
+    is where it is recovered.
+
+    The model is asked to judge a fixed list rather than produce one. A
+    decision per item has a far smaller space to vary in than a list has,
+    which is the same reason the quote check works: a narrow question against
+    fixed material is answerable, where an open one is a performance.
+    """
+    if len(proposals) < 2:
+        return proposals
+
+    listed = "\n".join(f"  {s.name}: {s.role}" for s in proposals)
+    prompt = (
+        f"Paper: {doc.meta.title}\n\n"
+        "Each line below was proposed as a component of this paper's method. "
+        "Reading them together, decide two things for each.\n\n"
+        "IMPLEMENTABLE - would someone reimplementing this paper write this "
+        "as a function, class or module of its own?\n"
+        "  yes: a block, a layer, a transformation, a schedule, a loss, a "
+        "sampler, anything with inputs and outputs of its own\n"
+        "  no:  a symbol from an equation; a single arithmetic step; a "
+        "position in a list rather than a thing; a setting or a constant; "
+        "the complete model, which is all of these together\n\n"
+        "CANONICAL_NAME - the clearest name for the thing itself. Proposals "
+        "that name one thing must be given the same canonical name, however "
+        "differently they were phrased. Use the paper's wording.\n\n"
+        "DEFINING_QUOTE - the sentence where the paper introduces this as a "
+        "thing in its own right, copied verbatim. The quote is checked "
+        "against the source, so a sentence that is not in the paper is worse "
+        "than none. A thing the paper never introduces has no quote - say so "
+        "with null rather than finding something nearby.\n\n"
+        "Judge every line. Do not add any.\n\n"
+        f"{listed}"
+    )
+    report.calls += 1
+    try:
+        verdicts = complete_json(prompt, Consolidated, system=SYSTEM, config=config)
+    except LLMError as exc:
+        report.warnings.append(f"consolidation: {exc}")
+        return proposals
+
+    by_name = {s.name.strip().lower(): s for s in proposals}
+    kept: dict[str, ComponentSketch] = {}
+    for verdict in verdicts.components:
+        source = by_name.get(verdict.name.strip().lower())
+        if source is None:
+            continue
+        if not verdict.implementable:
+            report.rejected.append(source.name)
+            continue
+        # A defining sentence was tried as a hard gate here - drop anything
+        # the paper does not introduce - on the reasoning that "head_i" is a
+        # symbol and "concat" an operation, while a residual connection has a
+        # sentence of its own. Measured, it cost far more than it bought:
+        # components per run went from 13-20 to 3-16 and residual connection
+        # itself fell to 2/3, because a real component whose quote the model
+        # paraphrases is indistinguishable from an invented one. The quote is
+        # kept as evidence where it checks out, and never used to delete.
+        if verdict.defining_quote and locate(doc.tex, verdict.defining_quote):
+            report.verified_quotes += 1
+        key = _canonical(verdict.canonical_name) or _canonical(source.name)
+        existing = kept.get(key)
+        if existing is None:
+            source.name = verdict.canonical_name.strip() or source.name
+            kept[key] = source
+            continue
+        if len(source.role) > len(existing.role):
+            existing.role = source.role
+        for dependency in source.depends_on:
+            if dependency not in existing.depends_on:
+                existing.depends_on.append(dependency)
+
+    # A refusal to judge is not a reason to throw the paper away.
+    return list(kept.values()) or proposals
+
+
+def _inventory_units(doc: Document, config: LLMConfig, report: Report) -> Inventory:
+    """Read the method one unit at a time and merge what each turns up.
+
+    The summary and the repository link do not need a model: the abstract is
+    the authors' own summary, and a URL either appears in the source or does
+    not. Spending a call on either invites an answer that sounds right.
+    """
+    sketches: list[ComponentSketch] = []
+    for unit in units(doc, doc.methodology() or doc.sections[:6]):
+        try:
+            sketches.extend(_unit_inventory(unit, doc, config, report).components)
+        except LLMError as exc:
+            report.warnings.append(f"unit {unit.title!r}: {exc}")
+
+    merged = _merge(sketches)
+    return Inventory(
+        summary=doc.meta.abstract,
+        official_repo=official_repo(doc),
+        components=_consolidate(merged, doc, config, report),
+    )
+
+
+def _canonical(name: str) -> str:
+    """A name reduced to what two spellings of the same thing share.
+
+    Runs disagree on wording - Embeddings, Embeddings and Softmax, Softmax -
+    and three names for one component is three components as far as anything
+    downstream can tell.
+    """
+    text = re.sub(r"[^a-z0-9 ]+", " ", name.lower())
+    words = [w for w in text.split() if w not in _NAME_NOISE]
+    return " ".join(sorted(w.rstrip("s") for w in words))
+
+
+_NAME_NOISE = frozenset(
+    "the a an of and or for to in on with its module layer block component "
+    "mechanism function networks network".split()
+)
+
+
+def _subsumes(a: str, b: str) -> bool:
+    """Whether two canonical names are qualified versions of one thing.
+
+    Reading nine sections separately produces "embeddings", "input
+    embeddings", "output embeddings" and "learned embeddings" - one component
+    under four names, which string similarity will not fold together because
+    they are genuinely different strings. What they share is that one name's
+    words contain the other's.
+    """
+    first, second = set(a.split()), set(b.split())
+    if not first or not second:
+        return False
+    return first <= second or second <= first
+
+
+def _merge(sketches: list[ComponentSketch]) -> list[ComponentSketch]:
+    """Fold duplicate and near-duplicate names into one component each."""
+    kept: list[ComponentSketch] = []
+    keys: list[str] = []
+    for sketch in sketches:
+        key = _canonical(sketch.name)
+        if not key:
+            continue
+        match = None
+        for index, existing in enumerate(keys):
+            if (
+                existing == key
+                or _subsumes(existing, key)
+                or SequenceMatcher(None, existing, key).ratio() > 0.86
+            ):
+                match = index
+                break
+        if match is None:
+            keys.append(key)
+            kept.append(sketch)
+            continue
+        # Keep the longer role; two readings of one component rarely say the
+        # same amount, and the fuller one is the more useful.
+        if len(sketch.role) > len(kept[match].role):
+            kept[match].role = sketch.role
+        # Prefer the plainer name. Of "embeddings" and "learned input
+        # embeddings", the first is what a reader will type.
+        if len(sketch.name) < len(kept[match].name):
+            kept[match].name = sketch.name
+            keys[match] = _canonical(sketch.name)
+        for dependency in sketch.depends_on:
+            if dependency not in kept[match].depends_on:
+                kept[match].depends_on.append(dependency)
+    return kept
+
+
 def _missing(
     doc: Document,
     found: list[ComponentSketch],
@@ -555,6 +823,7 @@ def extract(
     with_training: bool = True,
     with_unknowns: bool = True,
     with_missing: bool = True,
+    per_unit: bool = True,
 ) -> tuple[ImplementationSpec, Report]:
     """Read a paper and build a spec from it.
 
@@ -565,7 +834,11 @@ def extract(
     report = Report()
     tex = doc.tex
 
-    inventory = _inventory(doc, config, report)
+    inventory = (
+        _inventory_units(doc, config, report)
+        if per_unit
+        else _inventory(doc, config, report)
+    )
 
     sketches = list(inventory.components)
     if with_missing and sketches:
