@@ -23,6 +23,17 @@ _HEADING_RE = re.compile(
     r"\\(?P<kind>" + "|".join(_HEADINGS) + r")\*?\s*(?:\[[^\]]*\])?\s*\{",
     re.MULTILINE,
 )
+# Where a paper stops introducing and where it starts reporting. These name
+# parts of a paper, not parts of a model, so they read the same over a
+# diffusion paper as over a transformer one.
+_OPENING_RE = re.compile(
+    r"introduction|background|related work|prior work|preliminar|motivation|notation"
+)
+_CLOSING_RE = re.compile(
+    r"experiment|result|evaluation|ablation|discussion|conclusion|"
+    r"related work|future work|acknowledg|appendix|reference|broader impact"
+)
+
 _LABEL_RE = re.compile(r"\\label\s*\{(?P<label>[^}]*)\}")
 _INPUT_RE = re.compile(r"(?<!\\)\\(?:input|include)\s*\{\s*(?P<path>[^}]+?)\s*\}")
 _DOCUMENTCLASS_RE = re.compile(r"(?<!%)\\documentclass")
@@ -116,12 +127,36 @@ class Document:
         ]
 
     def methodology(self) -> list[Section]:
-        """Best-effort guess at the sections describing how the thing works."""
+        """The sections describing how the thing works.
+
+        Found by position first, and only then by wording. A paper runs
+        introduction, then method, then results, whatever the field, and that
+        ordering holds where a vocabulary does not: Batch Normalization calls
+        its method section "Normalization via Mini-Batch Statistics", which
+        contains none of the words a keyword match looks for. Matching on
+        words picked two incidental subsections and read 3,699 characters of
+        a 48,594 character paper, then reported what it found as the paper's
+        contents.
+        """
+        top = [s for s in self.sections if s.level == 1]
+        if len(top) >= 3:
+            start, end = 0, len(top)
+            for index, section in enumerate(top):
+                title = section.title.lower()
+                if index <= 2 and _OPENING_RE.search(title):
+                    start = index + 1
+                if index > start and _CLOSING_RE.search(title):
+                    end = index
+                    break
+            span = top[start:end]
+            if span:
+                return span
+
         hits = self.find(
             "method", "approach", "model", "architecture", "algorithm",
             "framework", "implementation", "our ", "design", "formulation",
         )
-        return hits or [s for s in self.sections if s.level == 1]
+        return hits or top
 
     def appendix(self) -> list[Section]:
         """Sections from the appendix onward - where the real details hide.
@@ -368,11 +403,39 @@ def extract_environments(tex: str, names: tuple[str, ...]) -> list[Environment]:
     return sorted(found, key=lambda e: e.start)
 
 
+_INCLUDEPDF_RE = re.compile(r"\\includepdf")
+
+# Below this, a "source" is a wrapper rather than a paper. Across a thirty
+# paper corpus the shortest real submission ran to tens of thousands of
+# characters; the wrappers ran to two or three hundred.
+MIN_BODY_CHARS = 1500
+
+
 def build_document(meta: PaperMeta, raw: bytes) -> Document:
     """Full ingestion: archive bytes in, addressable :class:`Document` out."""
     files = unpack(raw)
     main = find_main(files)
     tex = strip_comments(flatten(files, main))
+
+    # Some submissions are a PDF in a LaTeX costume: a documentclass, a
+    # usepackage{pdfpages} and one includepdf of the real document. They
+    # unpack, they parse, and they yield nothing - which the pipeline then
+    # reported as a paper with no components and no gaps. That is a claim
+    # about the paper rather than about what could be read, and it is the
+    # failure this project exists to prevent. PPO and Adam are both this,
+    # and both looked like ordinary empty results.
+    body = tex.strip()
+    if _INCLUDEPDF_RE.search(tex) and len(body) < MIN_BODY_CHARS:
+        raise UnpackError(
+            "this submission has no LaTeX source: it is a PDF wrapped in a "
+            "LaTeX file. Nothing can be extracted from it."
+        )
+    if len(body) < MIN_BODY_CHARS:
+        raise UnpackError(
+            f"the LaTeX source is only {len(body)} characters, too little to "
+            "be the paper - this submission probably ships no real source."
+        )
+
     sections = segment(tex)
 
     span = bibliography_span(tex)
