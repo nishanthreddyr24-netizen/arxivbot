@@ -1,0 +1,38 @@
+[
+  { "id": "1706.03762", "area": "transformer",  "short": "Transformer" },
+  { "id": "1810.04805", "area": "transformer",  "short": "BERT" },
+  { "id": "1907.11692", "area": "transformer",  "short": "RoBERTa" },
+  { "id": "2310.06825", "area": "transformer",  "short": "Mistral 7B" },
+  { "id": "1910.10683", "area": "transformer",  "short": "T5" },
+
+  { "id": "2205.14135", "area": "efficiency",   "short": "FlashAttention" },
+  { "id": "2106.09685", "area": "efficiency",   "short": "LoRA" },
+  { "id": "2104.09864", "area": "efficiency",   "short": "RoFormer" },
+  { "id": "1909.11942", "area": "efficiency",   "short": "ALBERT" },
+  { "id": "2004.05150", "area": "efficiency",   "short": "Longformer" },
+
+  { "id": "2006.11239", "area": "generative",   "short": "DDPM" },
+  { "id": "2010.02502", "area": "generative",   "short": "DDIM" },
+  { "id": "2112.10752", "area": "generative",   "short": "Latent Diffusion" },
+  { "id": "1406.2661",  "area": "generative",   "short": "GAN" },
+  { "id": "1312.6114",  "area": "generative",   "short": "VAE" },
+
+  { "id": "2010.11929", "area": "vision",       "short": "ViT" },
+  { "id": "1512.03385", "area": "vision",       "short": "ResNet" },
+  { "id": "1505.04597", "area": "vision",       "short": "U-Net" },
+  { "id": "2003.08934", "area": "vision",       "short": "NeRF" },
+
+  { "id": "1707.06347", "area": "rl",           "short": "PPO" },
+  { "id": "1312.5602",  "area": "rl",           "short": "DQN" },
+  { "id": "1509.02971", "area": "rl",           "short": "DDPG" },
+  { "id": "1801.01290", "area": "rl",           "short": "SAC" },
+  { "id": "1703.03400", "area": "rl",           "short": "MAML" },
+
+  { "id": "1609.02907", "area": "graph",        "short": "GCN" },
+  { "id": "1710.10903", "area": "graph",        "short": "GAT" },
+  { "id": "1706.02216", "area": "graph",        "short": "GraphSAGE" },
+
+  { "id": "1412.6980",  "area": "optimisation", "short": "Adam" },
+  { "id": "1502.03167", "area": "optimisation", "short": "BatchNorm" },
+  { "id": "1607.06450", "area": "optimisation", "short": "LayerNorm" }
+]
