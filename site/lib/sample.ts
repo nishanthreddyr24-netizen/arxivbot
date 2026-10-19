@@ -78,48 +78,8 @@ export type RecentPaper = {
   extracted: string[];
 };
 
-/** Papers the pipeline has run on. Sample data, labelled as such on the page. */
-export const RECENT: RecentPaper[] = [
-  {
-    id: "1706.03762",
-    title: "Attention Is All You Need",
-    category: "cs.CL",
-    authors: "Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez, Kaiser, Polosukhin",
-    extracted: ["multi-head attention", "residual connection", "layer normalization"],
-  },
-  {
-    id: "2106.09685",
-    title: "LoRA: Low-Rank Adaptation of Large Language Models",
-    category: "cs.CL",
-    authors: "Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, Chen",
-    extracted: ["low-rank decomposition", "adapter injection", "scaling factor"],
-  },
-  {
-    id: "2205.14135",
-    title: "FlashAttention: Fast and Memory-Efficient Exact Attention",
-    category: "cs.LG",
-    authors: "Dao, Fu, Ermon, Rudra, Ré",
-    extracted: ["tiling", "online softmax", "recomputation in the backward pass"],
-  },
-  {
-    id: "2104.09864",
-    title: "RoFormer: Enhanced Transformer with Rotary Position Embedding",
-    category: "cs.CL",
-    authors: "Su, Lu, Pan, Murtadha, Wen, Liu",
-    extracted: ["rotary position embedding", "rotation matrix", "relative distance decay"],
-  },
-  {
-    id: "2006.11239",
-    title: "Denoising Diffusion Probabilistic Models",
-    category: "cs.LG",
-    authors: "Ho, Jain, Abbeel",
-    extracted: ["forward noising process", "reverse step", "variance schedule"],
-  },
-  {
-    id: "2310.06825",
-    title: "Mistral 7B",
-    category: "cs.CL",
-    authors: "Jiang, Sablayrolles, Mensch, Bamford, Chaplot, de las Casas, Bressand",
-    extracted: ["sliding window attention", "rolling buffer cache", "grouped-query attention"],
-  },
-];
+// The fabricated "recent extractions" list lived here. It was invented
+// activity on a page whose whole claim is that it only shows what it can
+// evidence, so it was cut rather than relabelled. `RecentPaper` stays: it
+// is the shape of /api/recent, which returns real rows.
+

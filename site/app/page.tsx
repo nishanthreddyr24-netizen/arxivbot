@@ -1,5 +1,6 @@
+import { DERIVED_LINES, SILENT_LINES, SKELETON } from "./components/content";
 import { Hero } from "./components/Hero";
-import { Footer, HowItWorks, Limits, Listing } from "./components/Sections";
+import { Footer, HowItWorks, Limits, Rubric } from "./components/Sections";
 import { TopBar } from "./components/TopBar";
 import { Trace } from "./components/Trace";
 import { code, math } from "@/lib/render";
@@ -8,7 +9,7 @@ import { TRACE } from "@/lib/sample";
 export default async function Home() {
   // Rendered here, so the browser loads neither KaTeX nor Shiki.
   const [codeHtml, equationHtml] = await Promise.all([
-    code(TRACE.code),
+    code(SKELETON),
     Promise.resolve(math(TRACE.equation)),
   ]);
 
@@ -18,16 +19,18 @@ export default async function Home() {
       <main>
         <Hero />
 
-        <section className="mx-auto max-w-[1120px] px-4 sm:px-6">
-          {/* The panel was unlabelled, so it read as decoration rather than
-              as the one worked example the page is built around. */}
-          <div className="flex items-baseline gap-4 border-b border-hairline-strong pb-2">
-            <h2 className="font-mono text-2xs uppercase tracking-[0.11em] text-muted">
-              One sentence, traced into code
-            </h2>
-            <span className="font-mono text-2xs text-faint">worked example</span>
-          </div>
-          <div className="pt-4">
+        {/* The worked example is the argument, so it gets the page's widest
+            measure and its own full-bleed rule rather than sitting as the
+            third item in a stack of sections. */}
+        <section className="mx-auto max-w-[1240px] px-4 sm:px-6">
+          <Rubric note="worked example">One sentence, traced into code</Rubric>
+          <p className="max-w-[72ch] pb-5 pt-4 text-lg text-muted">
+            One sentence, quoted from the submitted LaTeX of{" "}
+            <span className="text-ink">Mistral 7B</span>, and the lines it
+            produced &mdash; marked, alongside the place where the paper
+            stopped specifying and the implementer has to decide.
+          </p>
+
           <Trace
             arxivId={TRACE.arxivId}
             title={TRACE.title}
@@ -38,13 +41,12 @@ export default async function Home() {
             equationHtml={equationHtml}
             equationNote={TRACE.equationNote}
             codeHtml={codeHtml}
-            code={TRACE.code}
-            derivedLines={TRACE.derivedLines}
+            code={SKELETON}
+            derivedLines={DERIVED_LINES}
+            silentLines={SILENT_LINES}
           />
-          </div>
         </section>
 
-        <Listing />
         <HowItWorks />
         <Limits />
       </main>

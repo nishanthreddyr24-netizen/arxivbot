@@ -5,7 +5,6 @@ import Link from "next/link";
  * at 360px they pushed the bar 100px past the viewport and bought nothing.
  */
 const LINKS = [
-  { label: "Examples", href: "#examples", onPhone: false },
   { label: "How it works", href: "#how-it-works", onPhone: false },
   {
     label: "GitHub",
@@ -16,11 +15,13 @@ const LINKS = [
 
 export function TopBar() {
   return (
-    <header className="h-12 border-b border-hairline">
-      <div className="mx-auto flex h-full max-w-[1120px] items-center gap-6 px-4 sm:px-6">
+    // Sticky: the page is now one long argument, and the way back to the
+    // input should not be a scroll to the top.
+    <header className="sticky top-0 z-20 border-b border-hairline bg-ground/90 backdrop-blur-sm">
+      <div className="mx-auto flex h-12 max-w-[1240px] items-center gap-6 px-4 sm:px-6">
         <Link
           href="/"
-          className="flex items-center gap-2 font-mono text-sm text-ink"
+          className="-my-2 flex items-center gap-2 py-2 font-mono text-sm text-ink"
         >
           {/* The only red that is not interactive: a 6px register mark. */}
           <span aria-hidden className="size-1.5 bg-red-fill" />
@@ -42,7 +43,7 @@ export function TopBar() {
           ))}
           <Link
             href="/app"
-            className="py-2 font-mono text-xs text-red-ink underline-offset-4 hover:underline"
+            className="border border-hairline-strong px-3 py-1.5 font-mono text-xs text-red-ink transition-colors hover:border-red-dim"
           >
             Open tool
           </Link>

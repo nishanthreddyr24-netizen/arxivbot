@@ -3,11 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { SILENCES } from "./content";
+
 /** Sample requests, filled into the form on click. Real papers, real sections. */
 const EXAMPLES = [
-  { paper: "2310.06825", query: "the sliding-window attention block" },
-  { paper: "2106.09685", query: "the low-rank adapter injection" },
-  { paper: "2006.11239", query: "the noise schedule and the reverse step" },
+  // `label` is what the chip shows; `query` is what goes into the field. The
+  // full queries are 30-40 characters each and wrapped the row three deep.
+  { paper: "2310.06825", label: "SWA block", query: "the sliding-window attention block" },
+  { paper: "2106.09685", label: "LoRA injection", query: "the low-rank adapter injection" },
+  { paper: "2006.11239", label: "noise schedule", query: "the noise schedule and the reverse step" },
 ];
 
 /** Accepts a bare id, an abs/pdf URL, or a versioned id. */
@@ -66,104 +70,119 @@ export function Hero() {
   }
 
   const field =
-    "w-full bg-transparent px-3 py-3 font-mono text-sm text-ink " +
+    "w-full min-w-0 bg-transparent px-3 py-3 font-mono text-sm text-ink " +
     "placeholder:text-faint focus:outline-none";
 
+  // Below `sm` the label sits above the field. Side by side it was a fixed
+  // 80px column, and "component" at 12px mono is wider than that: on a 360px
+  // phone the longer of the two labels was clipped mid-word.
+  const label =
+    "flex items-center border-hairline px-3 pt-3 pb-1 font-mono text-xs " +
+    "text-muted sm:w-[6.5rem] sm:shrink-0 sm:border-r sm:py-0 sm:pb-0";
+
   return (
-    <section className="mx-auto max-w-[1120px] px-4 pb-12 pt-8 sm:px-6 sm:pt-10">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-12">
+    <section className="hero-aura mx-auto max-w-[1240px] px-4 pb-12 pt-8 sm:px-6 lg:pt-12">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14">
         <div className="min-w-0">
-      <h1 className="max-w-[22ch] text-[clamp(1.9rem,4.6vw,2.75rem)] font-normal leading-[1.12] tracking-[-0.02em] text-ink">
-        Implement the paper, not your memory of it.
-      </h1>
-      <p className="mt-5 max-w-[58ch] text-lg text-muted">
-        Paste an arXiv id. This reads the authors&rsquo; own LaTeX source and
-        returns the components, hyperparameters and equations with the
-        sentence each one came from &mdash; plus a list of everything the paper
-        never decided.
-      </p>
+          <p className="font-mono text-2xs uppercase tracking-[0.14em] text-faint">
+            LaTeX source
+            <span className="px-2 text-red-ink" aria-hidden>
+              &rarr;
+            </span>
+            verified spec
+            <span className="px-2 text-red-ink" aria-hidden>
+              &rarr;
+            </span>
+            skeleton
+          </p>
 
-      <form
-        className="mt-8 max-w-[760px] border border-hairline bg-surface"
-        onSubmit={(event) => {
-          event.preventDefault();
-          go();
-        }}
-        onKeyDown={onFormKeyDown}
-      >
-        <div className="flex items-stretch border-b border-hairline">
-          <label
-            htmlFor="paper"
-            className="flex w-[5rem] shrink-0 sm:w-[6.5rem] items-center border-r border-hairline px-3 font-mono text-xs text-muted"
-          >
-            paper
-          </label>
-          <input
-            id="paper"
-            ref={paperRef}
-            value={paper}
-            onChange={(event) => {
-              setPaper(event.target.value);
-              if (error) setError(null);
+          <h1 className="display mt-4 max-w-[16ch] font-normal text-ink">
+            Implement the paper, not your memory of it.
+          </h1>
+
+          <p className="mt-5 max-w-[54ch] text-lg text-muted">
+            Paste an arXiv id. This reads the authors&rsquo; own LaTeX
+            &mdash; not the PDF, not a summary &mdash; and returns every
+            component, hyperparameter and equation{" "}
+            <span className="text-ink">
+              with the verbatim sentence that supports it
+            </span>
+            .
+          </p>
+
+          <form
+            className="mt-7 max-w-[760px] border border-hairline bg-surface"
+            onSubmit={(event) => {
+              event.preventDefault();
+              go();
             }}
-            className={field}
-            placeholder="2310.06825 or arxiv.org/abs/..."
-            autoComplete="off"
-            spellCheck={false}
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? "paper-error" : undefined}
-          />
-        </div>
-
-        <div className="flex items-stretch">
-          <label
-            htmlFor="component"
-            className="flex w-[5rem] shrink-0 sm:w-[6.5rem] items-center border-r border-hairline px-3 font-mono text-xs text-muted"
+            onKeyDown={onFormKeyDown}
           >
-            component
-          </label>
-          <input
-            id="component"
-            ref={queryRef}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className={field}
-            placeholder="the sliding-window attention block"
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <button
-            type="submit"
-            className="m-2 shrink-0 bg-red-fill px-5 font-mono text-xs font-bold text-white transition-opacity hover:opacity-90 active:opacity-80"
-          >
-            Go <span aria-hidden>&crarr;</span>
-          </button>
-        </div>
-      </form>
+            <div className="flex flex-col border-b border-hairline sm:flex-row sm:items-stretch">
+              <label htmlFor="paper" className={label}>
+                paper
+              </label>
+              <input
+                id="paper"
+                ref={paperRef}
+                value={paper}
+                onChange={(event) => {
+                  setPaper(event.target.value);
+                  if (error) setError(null);
+                }}
+                className={field}
+                placeholder="2310.06825 or arxiv.org/abs/..."
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "paper-error" : undefined}
+              />
+            </div>
 
-      {error ? (
-        <p
-          id="paper-error"
-          role="alert"
-          className="mt-3 font-mono text-sm text-red-ink"
-        >
-          {error}
-        </p>
-      ) : null}
+            <div className="flex flex-col sm:flex-row sm:items-stretch">
+              <label htmlFor="component" className={label}>
+                component
+              </label>
+              <input
+                id="component"
+                ref={queryRef}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className={field}
+                placeholder="the sliding-window attention block"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
 
-      <p className="mt-4 font-mono text-2xs text-faint">
-        <kbd className="text-muted">/</kbd> to focus &middot;{" "}
-        <kbd className="text-muted">&#8984;&crarr;</kbd> to run
-      </p>
-
-      <div id="examples" className="mt-8 max-w-[760px]">
-        <p className="border-b border-hairline-strong pb-2 font-mono text-2xs uppercase tracking-[0.11em] text-muted">
-          Or start from one of these
-        </p>
-        <ul>
-          {EXAMPLES.map((example) => (
-            <li key={example.paper} className="border-b border-hairline">
+            <div className="flex border-t border-hairline p-2">
               <button
+                type="submit"
+                className="w-full bg-red-fill px-5 py-3 font-mono text-xs font-bold text-white transition-opacity hover:opacity-90 active:opacity-80 sm:ml-auto sm:w-auto"
+              >
+                Extract <span aria-hidden>&crarr;</span>
+              </button>
+            </div>
+          </form>
+
+          {error ? (
+            <p
+              id="paper-error"
+              role="alert"
+              className="mt-3 font-mono text-sm text-red-ink"
+            >
+              {error}
+            </p>
+          ) : null}
+
+          {/* Examples were a three-row list under its own rubric; as chips they
+              say the same thing in a quarter of the height, which is what gets
+              the worked example below into the first screenful. */}
+          <div id="examples" className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-2xs text-faint">or try</span>
+            {EXAMPLES.map((example) => (
+              <button
+                key={example.paper}
                 type="button"
                 onClick={() => {
                   setPaper(example.paper);
@@ -171,73 +190,73 @@ export function Hero() {
                   setError(null);
                   queryRef.current?.focus();
                 }}
-                className="group flex w-full items-baseline gap-4 py-2.5 text-left"
+                className="border border-hairline px-2.5 py-2 font-mono text-2xs text-muted transition-colors hover:border-hairline-strong hover:text-red-ink"
               >
-                <span className="w-[5.5rem] shrink-0 font-mono text-xs text-red-ink">
-                  {example.paper}
-                </span>
-                <span className="min-w-0 font-mono text-xs text-muted transition-colors group-hover:text-ink">
-                  {example.query}
-                </span>
+                {example.paper}
+                <span className="pl-2 text-faint">{example.label}</span>
               </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+            ))}
+            {/* Trails the chips rather than being pushed right: at 760px
+                `ml-auto` sent it onto a row of its own. */}
+            <span className="hidden pl-2 font-mono text-2xs text-faint lg:inline">
+              <kbd className="text-muted">/</kbd> focus &middot;{" "}
+              <kbd className="text-muted">&#8984;&crarr;</kbd> run
+            </span>
+          </div>
         </div>
 
-        <Legend />
+        <Silence />
       </div>
     </section>
   );
 }
 
 /**
- * The notation the tool uses, stated once before anyone meets it. The hero
- * was two-thirds empty, and a legend is the one thing that belongs there:
- * it is the product's whole vocabulary in three rows.
+ * The half of the product that nothing else does, stated before the demo.
+ *
+ * This slot held a legend defining three marks the visitor had not met yet. A
+ * legend explains the notation; this makes the argument. Every item is a
+ * question a model that has read the paper answers instantly, and the paper
+ * answers none of them.
  */
-function Legend() {
-  const rows: [React.ReactNode, string, string][] = [
-    [
-      <span key="m" className="mt-[0.4em] size-[7px] shrink-0 bg-red-fill" />,
-      "quoted",
-      "a verbatim sentence from the source backs this value",
-    ],
-    [
-      <span key="m" className="mt-[0.4em] size-[7px] shrink-0 border border-faint" />,
-      "unquoted",
-      "asserted, but no sentence could be located for it",
-    ],
-    [
-      <span key="m" aria-hidden className="mt-[0.4em] flex shrink-0 gap-[2px]">
-        <span className="size-[7px] bg-red-fill" />
-        <span className="size-[7px] bg-red-fill" />
-        <span className="size-[7px] bg-red-fill" />
-      </span>,
-      "gap",
-      "the paper never decides this; you have to",
-    ],
-  ];
-
+function Silence() {
   return (
-    <aside className="lg:border-l lg:border-hairline lg:pl-6">
-      <p className="border-b border-hairline-strong pb-2 font-mono text-2xs uppercase tracking-[0.11em] text-muted">
-        What comes back
-      </p>
+    <aside className="min-w-0 self-start border border-hairline bg-surface-raised">
+      <div className="flex items-baseline gap-3 border-b border-hairline-strong px-4 py-3 sm:px-5">
+        <h2 className="font-mono text-2xs uppercase tracking-[0.12em] text-ink">
+          What the paper never says
+        </h2>
+        <span className="ml-auto shrink-0 font-mono text-2xs text-faint">
+          2310.06825 &sect;SWA
+        </span>
+      </div>
+
       <dl>
-        {rows.map(([mark, term, body]) => (
-          <div key={term} className="flex gap-2.5 border-b border-hairline py-3">
-            <span aria-hidden className="flex w-[27px] shrink-0 justify-start">
-              {mark}
+        {SILENCES.map((item) => (
+          <div
+            key={item.subject}
+            className="flex gap-3 border-b border-hairline px-4 py-3.5 sm:px-5"
+          >
+            {/* The tool's own mark for a gap, so the notation is learned by
+                meeting it rather than by being defined. */}
+            <span aria-hidden className="mt-[0.55em] flex shrink-0 gap-[2px]">
+              <span className="size-[6px] bg-red-fill" />
+              <span className="size-[6px] bg-red-fill" />
+              <span className="size-[6px] bg-red-fill" />
             </span>
             <div className="min-w-0">
-              <dt className="font-mono text-xs text-ink">{term}</dt>
-              <dd className="mt-0.5 text-sm text-muted">{body}</dd>
+              <dt className="font-mono text-xs text-ink">{item.subject}</dt>
+              <dd className="mt-1 text-sm text-muted">{item.body}</dd>
             </div>
           </div>
         ))}
       </dl>
+
+      <p className="bg-sunken px-4 py-3 font-mono text-2xs leading-[1.6] text-faint sm:px-5">
+        Each is reported as a gap, and lands in the generated file as{" "}
+        <span className="text-red-ink">TODO(paper-silent)</span>. A model that
+        has read this paper will answer all three without hesitating.
+      </p>
     </aside>
   );
 }

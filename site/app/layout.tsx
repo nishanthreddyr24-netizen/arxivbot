@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "arxiv→code",
   description:
-    "Paste an arXiv paper, ask for a component, and get code traced back to the section it came from.",
+    "Paste an arXiv id. Reads the authors' own LaTeX source and returns every component, hyperparameter and equation with the verbatim sentence that supports it — and a list of what the paper never specifies.",
 };
 
 export default function RootLayout({
