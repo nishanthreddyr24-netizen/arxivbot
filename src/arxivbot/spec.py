@@ -66,6 +66,81 @@ class Severity(str, Enum):
     """Unlikely to change results materially."""
 
 
+class Modality(str, Enum):
+    """What a component expects to be handed."""
+
+    SEQUENCE = "sequence"
+    IMAGE = "image"
+    GRAPH = "graph"
+    SET = "set"
+    STATE = "state"
+    """A state vector from an environment, as in reinforcement learning."""
+
+    LATENT = "latent"
+    """A code produced by another model rather than raw data."""
+
+    ANY = "any"
+    """Genuinely shape-agnostic - a normalisation layer, an optimiser."""
+
+    UNSPECIFIED = "unspecified"
+
+
+class Ordering(str, Enum):
+    """Whether position carries meaning in the input."""
+
+    ORDERED = "ordered"
+    """Reordering the input changes the output. Needs positional information."""
+
+    PERMUTATION_INVARIANT = "permutation_invariant"
+    """Reordering the input must not change the output."""
+
+    NOT_APPLICABLE = "not_applicable"
+    UNSPECIFIED = "unspecified"
+
+
+class Regime(str, Enum):
+    """The training setting a component was designed inside."""
+
+    SUPERVISED = "supervised"
+    SELF_SUPERVISED = "self_supervised"
+    ADVERSARIAL = "adversarial"
+    DENOISING = "denoising"
+    RL_ON_POLICY = "rl_on_policy"
+    RL_OFF_POLICY = "rl_off_policy"
+    ANY = "any"
+    UNSPECIFIED = "unspecified"
+
+
+class NormPosition(str, Enum):
+    """Where normalisation sits relative to the residual branch."""
+
+    PRE = "pre"
+    POST = "post"
+    NONE = "none"
+    UNSPECIFIED = "unspecified"
+
+
+class Assumptions(BaseModel):
+    """What a component takes for granted about the model around it.
+
+    Two components can each be perfectly specified and still be impossible to
+    put together, because each was written assuming something the other
+    contradicts. Those assumptions are never stated as such - they are implied
+    by the surrounding paper - so composing two papers means recovering them
+    first. This is a deliberately small closed set: a fixed vocabulary can be
+    compared by code, where free text could only be compared by another model.
+    """
+
+    modality: Modality = Modality.UNSPECIFIED
+    ordering: Ordering = Ordering.UNSPECIFIED
+    regime: Regime = Regime.UNSPECIFIED
+    norm_position: NormPosition = NormPosition.UNSPECIFIED
+    notes: str | None = Field(
+        default=None,
+        description="Any further assumption that does not fit the fixed axes",
+    )
+
+
 class Provenance(BaseModel):
     """Where in the source a claim came from."""
 
@@ -163,6 +238,10 @@ class Component(BaseModel):
     depends_on: list[str] = Field(
         default_factory=list,
         description="Names of other components this one composes",
+    )
+    assumptions: Assumptions = Field(
+        default_factory=Assumptions,
+        description="What this component takes for granted about its surroundings",
     )
     provenance: Provenance | None = None
 

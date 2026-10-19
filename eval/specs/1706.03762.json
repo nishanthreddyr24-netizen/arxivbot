@@ -1,0 +1,694 @@
+{
+ "arxiv_id": "1706.03762v7",
+ "title": "Attention Is All You Need",
+ "extractor": {
+  "schema_version": "0.1",
+  "model": "gemini/gemini-flash-lite-latest",
+  "arxivbot_version": "0.1.0",
+  "extracted_at": "2026-10-19T13:13:45.230103Z",
+  "notes": null
+ },
+ "summary": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks in an encoder-decoder configuration. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results, including ensembles by over 2 BLEU. On the WMT 2014 English-to-French translation task, our model establishes a new single-model state-of-the-art BLEU score of 41.8 after training for 3.5 days on eight GPUs, a small fraction of the training costs of the best models from the literature. We show that the Transformer generalizes well to other tasks by applying it successfully to English constituency parsing both with large and limited training data.",
+ "components": [
+  {
+   "name": "encoder",
+   "role": "Allows each position in the encoder to attend to all positions in the previous layer of the encoder.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [
+    {
+     "latex": "\\mathrm{LayerNorm}(x + \\mathrm{Sublayer}(x))",
+     "description": "Computes the output of a sub-layer with a residual connection followed by layer normalization.",
+     "provenance": {
+      "section": "Encoder and Decoder Stacks",
+      "quote": "That is, the output of each sub-layer is \\mathrm{LayerNorm}(x + \\mathrm{Sublayer}(x)), where \\mathrm{Sublayer}(x) is the function implemented by the sub-layer itself.",
+      "char_start": 10121,
+      "char_end": 10291,
+      "label": null
+     },
+     "implements": "encoder"
+    }
+   ],
+   "hyperparameters": [
+    {
+     "name": "N",
+     "value": "6",
+     "unit": null,
+     "applies_to": "encoder",
+     "confidence": "stated",
+     "provenance": {
+      "section": "Encoder and Decoder Stacks",
+      "quote": "The encoder is composed of a stack of N=6 identical layers.",
+      "char_start": 9753,
+      "char_end": 9814,
+      "label": null
+     },
+     "notes": null
+    },
+    {
+     "name": "d_model",
+     "value": "512",
+     "unit": null,
+     "applies_to": "all sub-layers in the model, as well as the embedding layers",
+     "confidence": "stated",
+     "provenance": {
+      "section": "Encoder and Decoder Stacks",
+      "quote": "To facilitate these residual connections, all sub-layers in the model, as well as the embedding layers, produce outputs of dimension \\dmodel=512.",
+      "char_start": 10293,
+      "char_end": 10440,
+      "label": null
+     },
+     "notes": null
+    }
+   ],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "post",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Encoder and Decoder Stacks",
+    "quote": "Allows each position in the encoder to attend to all positions in the previous layer of the encoder.",
+    "char_start": 9692,
+    "char_end": 9733,
+    "label": null
+   }
+  },
+  {
+   "name": "Attention",
+   "role": "Maps one variable-length sequence of symbol representations to another sequence of equal length while connecting all positions with a constant number of sequentially executed operations.",
+   "inputs": [
+    {
+     "name": "Q",
+     "shape": [
+      "batch",
+      "seq",
+      "d_model"
+     ],
+     "dtype": null,
+     "description": "matrix of queries"
+    },
+    {
+     "name": "K",
+     "shape": [
+      "batch",
+      "seq",
+      "d_model"
+     ],
+     "dtype": null,
+     "description": "matrix of keys"
+    },
+    {
+     "name": "V",
+     "shape": [
+      "batch",
+      "seq",
+      "d_model"
+     ],
+     "dtype": null,
+     "description": "matrix of values"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "Attention output",
+     "shape": [
+      "batch",
+      "seq",
+      "d_model"
+     ],
+     "dtype": null,
+     "description": "matrix of outputs"
+    }
+   ],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Attention",
+    "quote": "Maps one variable-length sequence of symbol representations to another sequence of equal length while connecting all positions with a constant number of sequentially executed operations.",
+    "char_start": 11150,
+    "char_end": 11534,
+    "label": null
+   }
+  },
+  {
+   "name": "feed-forward network",
+   "role": "It is applied to each position separately and identically, consisting of two linear transformations with a ReLU activation in between.",
+   "inputs": [
+    {
+     "name": "x",
+     "shape": [
+      "batch",
+      "seq",
+      "d_model"
+     ],
+     "dtype": null,
+     "description": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FFN(x)",
+     "shape": [
+      "batch",
+      "seq",
+      "d_model"
+     ],
+     "dtype": null,
+     "description": null
+    }
+   ],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "post",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Position-wise Feed-Forward Networks",
+    "quote": "It is applied to each position separately and identically, consisting of two linear transformations with a ReLU activation in between.",
+    "char_start": 17000,
+    "char_end": 17750,
+    "label": null
+   }
+  },
+  {
+   "name": "residual connection",
+   "role": "Employed around each of the two sub-layers.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [
+    {
+     "name": "dropout rate",
+     "value": "0.1",
+     "unit": null,
+     "applies_to": "base model",
+     "confidence": "stated",
+     "provenance": {
+      "section": "Residual Dropout",
+      "quote": "For the base model, we use a rate of P_{drop}=0.1.",
+      "char_start": 26425,
+      "char_end": 26477,
+      "label": null
+     },
+     "notes": null
+    }
+   ],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "post",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Residual Dropout",
+    "quote": "Employed around each of the two sub-layers.",
+    "char_start": 26126,
+    "char_end": 26494,
+    "label": null
+   }
+  },
+  {
+   "name": "layer normalization",
+   "role": "Follows each residual connection around the sub-layers.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "any",
+    "ordering": "unspecified",
+    "regime": "supervised",
+    "norm_position": "post",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Two Feed-Forward Layers = Attention over Parameters",
+    "quote": "Follows each residual connection around the sub-layers.",
+    "char_start": 48907,
+    "char_end": 52275,
+    "label": null
+   }
+  },
+  {
+   "name": "embedding layers",
+   "role": "Produce outputs of dimension d_model=512 to facilitate residual connections.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [
+    {
+     "name": "d_model",
+     "value": "512",
+     "unit": null,
+     "applies_to": null,
+     "confidence": "guess",
+     "provenance": null,
+     "notes": null
+    }
+   ],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Embeddings and Softmax",
+    "quote": "Produce outputs of dimension d_model=512 to facilitate residual connections.",
+    "char_start": 17750,
+    "char_end": 18319,
+    "label": null
+   }
+  },
+  {
+   "name": "decoder",
+   "role": "A layer consisting of sub-layers including a third sub-layer for multi-head attention over the encoder stack output, residual connections, layer normalization, and a modified self-attention sub-layer.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [
+    {
+     "latex": "\\mathrm{LayerNorm}(x + \\mathrm{Sublayer}(x))",
+     "description": "Output of each sub-layer employing a residual connection followed by layer normalization.",
+     "provenance": {
+      "section": "Encoder and Decoder Stacks",
+      "quote": "That is, the output of each sub-layer is \\mathrm{LayerNorm}(x + \\mathrm{Sublayer}(x)), where \\mathrm{Sublayer}(x) is the function implemented by the sub-layer itself.",
+      "char_start": 10121,
+      "char_end": 10291,
+      "label": null
+     },
+     "implements": "decoder"
+    }
+   ],
+   "hyperparameters": [
+    {
+     "name": "N",
+     "value": "6",
+     "unit": null,
+     "applies_to": "decoder stack",
+     "confidence": "stated",
+     "provenance": {
+      "section": "Encoder and Decoder Stacks",
+      "quote": "The decoder is also composed of a stack of N=6 identical layers.",
+      "char_start": 10462,
+      "char_end": 10528,
+      "label": null
+     },
+     "notes": null
+    },
+    {
+     "name": "d_model",
+     "value": "512",
+     "unit": null,
+     "applies_to": "sub-layers and embedding layers",
+     "confidence": "stated",
+     "provenance": {
+      "section": "Encoder and Decoder Stacks",
+      "quote": "To facilitate these residual connections, all sub-layers in the model, as well as the embedding layers, produce outputs of dimension \\dmodel=512.",
+      "char_start": 10293,
+      "char_end": 10440,
+      "label": null
+     },
+     "notes": null
+    }
+   ],
+   "depends_on": [
+    "sub-layer",
+    "residual connection",
+    "layer normalization",
+    "Attention"
+   ],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "post",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Encoder and Decoder Stacks",
+    "quote": "A layer consisting of sub-layers including a third sub-layer for multi-head attention over the encoder stack output, residual connections, layer normalization, and a modified self-attention sub-layer.",
+    "char_start": 9692,
+    "char_end": 9733,
+    "label": null
+   }
+  },
+  {
+   "name": "sub-layer",
+   "role": "Modified in the decoder stack to prevent positions from attending to subsequent positions using masking.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "learned embeddings",
+   "role": "Convert the input tokens and output tokens to vectors of dimension dmodel, multiplied by the square root of dmodel in the embedding layers, and sharing the same weight matrix between the two embedding layers and the pre-softmax linear transformation.",
+   "inputs": [
+    {
+     "name": "input tokens",
+     "shape": [],
+     "dtype": null,
+     "description": "input tokens to be converted to vectors"
+    },
+    {
+     "name": "output tokens",
+     "shape": [],
+     "dtype": null,
+     "description": "output tokens to be converted to vectors"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "vectors",
+     "shape": [],
+     "dtype": null,
+     "description": "vectors of dimension d_model"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "W \\cdot \\sqrt{\\dmodel}",
+     "description": "Multiplies the embedding weights by the square root of dmodel in the embedding layers.",
+     "provenance": {
+      "section": "Embeddings and Softmax",
+      "quote": "In the embedding layers, we multiply those weights by $\\sqrt{\\dmodel}$.",
+      "char_start": 18245,
+      "char_end": 18316,
+      "label": null
+     },
+     "implements": "learned embeddings"
+    }
+   ],
+   "hyperparameters": [
+    {
+     "name": "dimension",
+     "value": "d_model",
+     "unit": null,
+     "applies_to": "input tokens and output tokens",
+     "confidence": "stated",
+     "provenance": {
+      "section": "Embeddings and Softmax",
+      "quote": "Similarly to other sequence transduction models, we use learned embeddings to convert the input tokens and output tokens to vectors of dimension $\\dmodel$.",
+      "char_start": 17786,
+      "char_end": 17941,
+      "label": null
+     },
+     "notes": null
+    }
+   ],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Embeddings and Softmax",
+    "quote": "Convert the input tokens and output tokens to vectors of dimension dmodel, multiplied by the square root of dmodel in the embedding layers, and sharing the same weight matrix between the two embedding layers and the pre-softmax linear transformation.",
+    "char_start": 17750,
+    "char_end": 18319,
+    "label": null
+   }
+  },
+  {
+   "name": "positional encodings",
+   "role": "Inject information about the relative or absolute position of the tokens in the sequence by adding them to the input embeddings at the bottoms of the encoder and decoder stacks.",
+   "inputs": [
+    {
+     "name": "input embeddings",
+     "shape": [
+      "batch",
+      "seq",
+      "d_model"
+     ],
+     "dtype": null,
+     "description": "input embeddings at the bottoms of the encoder and decoder stacks"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positional encodings",
+     "shape": [
+      "batch",
+      "seq",
+      "d_model"
+     ],
+     "dtype": null,
+     "description": "positional encodings added to the input embeddings"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "PE_{(pos,2i)} = sin(pos / 10000^{2i/\ndmodel})",
+     "description": "Computes the even indices of the positional encoding using sine functions of different frequencies.",
+     "provenance": null,
+     "implements": "positional encodings"
+    },
+    {
+     "latex": "PE_{(pos,2i+1)} = cos(pos / 10000^{2i/\ndmodel})",
+     "description": "Computes the odd indices of the positional encoding using cosine functions of different frequencies.",
+     "provenance": null,
+     "implements": "positional encodings"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Positional Encoding",
+    "quote": "Inject information about the relative or absolute position of the tokens in the sequence by adding them to the input embeddings at the bottoms of the encoder and decoder stacks.",
+    "char_start": 18319,
+    "char_end": 19904,
+    "label": null
+   }
+  },
+  {
+   "name": "recurrent layer",
+   "role": "Maps sequences using recurrent computations requiring O(n) sequential operations.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "unspecified",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Two Feed-Forward Layers = Attention over Parameters",
+    "quote": "Maps sequences using recurrent computations requiring O(n) sequential operations.",
+    "char_start": 48907,
+    "char_end": 52275,
+    "label": null
+   }
+  },
+  {
+   "name": "convolutional layer",
+   "role": "Maps sequences using a kernel width k < n.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "unspecified",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Two Feed-Forward Layers = Attention over Parameters",
+    "quote": "Maps sequences using a kernel width k < n.",
+    "char_start": 48907,
+    "char_end": 52275,
+    "label": null
+   }
+  }
+ ],
+ "hyperparameters": [],
+ "training": {
+  "objective": null,
+  "optimizer": "Adam",
+  "schedule": "lrate = \\dmodel^{-0.5} \\cdot \\min({step\\_num}^{-0.5}, {step\\_num} \\cdot {warmup\\_steps}^{-1.5})",
+  "hyperparameters": [
+   {
+    "name": "beta_1",
+    "value": "0.9",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We used the Adam optimizer~\\citep{kingma2014adam} with \\beta_1=0.9, \\beta_2=0.98 and \\epsilon=10^{-9}.",
+     "char_start": 25467,
+     "char_end": 25575,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "beta_2",
+    "value": "0.98",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We used the Adam optimizer~\\citep{kingma2014adam} with \\beta_1=0.9, \\beta_2=0.98 and \\epsilon=10^{-9}.",
+     "char_start": 25467,
+     "char_end": 25575,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "epsilon",
+    "value": "10^{-9}",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We used the Adam optimizer~\\citep{kingma2014adam} with \\beta_1=0.9, \\beta_2=0.98 and \\epsilon=10^{-9}.",
+     "char_start": 25467,
+     "char_end": 25575,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "warmup_steps",
+    "value": "4000",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We used $warmup\\_steps=4000$.",
+     "char_start": 25992,
+     "char_end": 26021,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "dropout rate",
+    "value": "0.1",
+    "unit": null,
+    "applies_to": "base model",
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "For the base model, we use a rate of $P_{drop}=0.1$.",
+     "char_start": 26425,
+     "char_end": 26477,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "label smoothing",
+    "value": "0.1",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "During training, we employed label smoothing of value \\epsilon_{ls}=0.1 \\citep{DBLP:journals/corr/SzegedyVISW15}.",
+     "char_start": 26522,
+     "char_end": 26637,
+     "label": null
+    },
+    "notes": null
+   }
+  ],
+  "datasets": [
+   "WMT 2014 English-German dataset",
+   "WMT 2014 English-French dataset"
+  ],
+  "hardware": "one machine with 8 NVIDIA P100 GPUs",
+  "equations": []
+ },
+ "unknowns": [
+  {
+   "question": "What is the weight initialization scheme for the linear projection matrices and embedding weights?",
+   "why_it_matters": "A poor initialization can lead to exploding or vanishing gradients, preventing the model from training altogether.",
+   "severity": "blocking",
+   "searched": [
+    "Model Architecture",
+    "Why Self-Attention",
+    "Training"
+   ],
+   "conventional_default": "Xavier/Glorot uniform or normal initialization, or Kaiming/He initialization.",
+   "applies_to": null
+  },
+  {
+   "question": "Are biases used in the linear projections for queries, keys, values, and the final output projection ($W^Q, W^K, W^V, W^O$) in multi-head attention?",
+   "why_it_matters": "Omitting or including biases changes the parameter count, shape of operations, and representational capacity of the attention mechanism.",
+   "severity": "significant",
+   "searched": [
+    "Model Architecture",
+    "Why Self-Attention",
+    "Training"
+   ],
+   "conventional_default": "No biases in attention projections.",
+   "applies_to": null
+  },
+  {
+   "question": "What is the exact padding token ID, pad mask handling, and sequence length truncation/padding strategy during batching?",
+   "why_it_matters": "Incorrect handling of padding tokens in self-attention or cross-attention can cause the model to attend to padding positions, corrupting representations.",
+   "severity": "significant",
+   "searched": [
+    "Model Architecture",
+    "Why Self-Attention",
+    "Training"
+   ],
+   "conventional_default": "Pad with zeros and mask out in attention logits with -inf.",
+   "applies_to": null
+  }
+ ],
+ "official_repo": "https://github.com/tensorflow/tensor2tensor"
+}

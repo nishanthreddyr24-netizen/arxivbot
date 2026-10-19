@@ -1,0 +1,551 @@
+{
+ "arxiv_id": "2010.11929v2",
+ "title": "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale",
+ "extractor": {
+  "schema_version": "0.1",
+  "model": "gemini/gemini-flash-lite-latest",
+  "arxivbot_version": "0.1.0",
+  "extracted_at": "2026-10-19T13:15:10.872620Z",
+  "notes": null
+ },
+ "summary": "",
+ "components": [
+  {
+   "name": "MLP",
+   "role": "MLP layers are local and translationally equivariant.",
+   "inputs": [
+    {
+     "name": "z'_l",
+     "shape": [
+      "batch",
+      "N + 1",
+      "D"
+     ],
+     "dtype": null,
+     "description": "Input sequence vector from the MSA block"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "z_l",
+     "shape": [
+      "batch",
+      "N + 1",
+      "D"
+     ],
+     "dtype": null,
+     "description": "Output sequence vector from the MLP block"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "\\mbf{z}_\\ell = \\op{MLP}(\\op{LN}(\\mbf{z^\\prime}_{\\ell})) + \\mbf{z^\\prime}_{\\ell}, && \\ell=1\\ldots L",
+     "description": "Computes the output of the MLP block at layer l with pre-layernorm and a residual connection.",
+     "provenance": {
+      "section": "Model",
+      "quote": "The Transformer encoder \\citep{vaswani2017} consists of alternating layers of multiheaded self-attention (MSA, see Appendix~\\ref{sec:self_attention}) and MLP blocks (Eq.~\\ref{eq:msa_apply}, \\ref{eq:mlp_apply}).",
+      "char_start": 23130,
+      "char_end": 23340,
+      "label": null
+     },
+     "implements": "MLP"
+    }
+   ],
+   "hyperparameters": [
+    {
+     "name": "number of layers in MLP",
+     "value": "two",
+     "unit": null,
+     "applies_to": null,
+     "confidence": "stated",
+     "provenance": {
+      "section": "Model",
+      "quote": "The MLP contains two layers with a GELU non-linearity.",
+      "char_start": 23474,
+      "char_end": 23528,
+      "label": null
+     },
+     "notes": null
+    },
+    {
+     "name": "non-linearity",
+     "value": "GELU",
+     "unit": null,
+     "applies_to": null,
+     "confidence": "stated",
+     "provenance": {
+      "section": "Model",
+      "quote": "The MLP contains two layers with a GELU non-linearity.",
+      "char_start": 23474,
+      "char_end": 23528,
+      "label": null
+     },
+     "notes": null
+    }
+   ],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "Self-attention",
+   "role": "Self-attention layers are global.",
+   "inputs": [
+    {
+     "name": "z",
+     "shape": [
+      "N",
+      "D"
+     ],
+     "dtype": null,
+     "description": "input sequence"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "SA(z)",
+     "shape": [
+      "N",
+      "D_h"
+     ],
+     "dtype": null,
+     "description": "self-attention output"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "[\\mbf{q}, \\mbf{k}, \\mbf{v}] = \\mbf{z} \\mbf{U}_{qkv} \\quad \\mbf{U}_{qkv} \\in \\mathbb{R}^{D \\times 3 D_h}",
+     "description": "Computes the query, key, and value representations from the input sequence.",
+     "provenance": {
+      "section": "Multihead Self-attention",
+      "quote": "For each element in an input sequence \\mbf{z} \\in \\mathbb{R}^{N \\times D}, we compute a weighted sum over all values \\mbf{v} in the sequence.",
+      "char_start": 49480,
+      "char_end": 49625,
+      "label": null
+     },
+     "implements": "Self-attention"
+    },
+    {
+     "latex": "A = \\op{softmax}\\left(\\mbf{q}\\mbf{k}^\\top / \\sqrt{D_h}\\right) \\quad A \\in \\mathbb{R}^{N \\times N}",
+     "description": "Computes the attention weights based on pairwise similarity between queries and keys.",
+     "provenance": {
+      "section": "Multihead Self-attention",
+      "quote": "The attention weights A_{ij} are based on the pairwise similarity between two elements of the sequence and their respective query \\mbf{q}^i and key \\mbf{k}^j representations.",
+      "char_start": 49626,
+      "char_end": 49806,
+      "label": null
+     },
+     "implements": "Self-attention"
+    },
+    {
+     "latex": "\\op{SA}(\\mbf{z}) = A\\mbf{v}",
+     "description": "Computes the self-attention output as a weighted sum over all values.",
+     "provenance": {
+      "section": "Multihead Self-attention",
+      "quote": "For each element in an input sequence \\mbf{z} \\in \\mathbb{R}^{N \\times D}, we compute a weighted sum over all values \\mbf{v} in the sequence.",
+      "char_start": 49480,
+      "char_end": 49625,
+      "label": null
+     },
+     "implements": "Self-attention"
+    }
+   ],
+   "hyperparameters": [
+    {
+     "name": "D_h",
+     "value": "D/k",
+     "unit": null,
+     "applies_to": null,
+     "confidence": "conventional",
+     "provenance": {
+      "section": "Multihead Self-attention",
+      "quote": "To keep compute and number of parameters constant when changing k, D_h (Eq.~\\ref{eq:qkv}) is typically set to D/k.",
+      "char_start": 50322,
+      "char_end": 50442,
+      "label": null
+     },
+     "notes": null
+    }
+   ],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "permutation_invariant",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Multihead Self-attention",
+    "quote": "Self-attention layers are global.",
+    "char_start": 49302,
+    "char_end": 50633,
+    "label": null
+   }
+  },
+  {
+   "name": "Position embeddings",
+   "role": "Carry no information about the 2D positions of the patches at initialization time and all spatial relations between the patches have to be learned from scratch.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [
+    "Prediction head"
+   ],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Positional Embedding",
+    "quote": "Carry no information about the 2D positions of the patches at initialization time and all spatial relations between the patches have to be learned from scratch.",
+    "char_start": 67726,
+    "char_end": 72590,
+    "label": null
+   }
+  },
+  {
+   "name": "CNN feature map",
+   "role": "Extracts features from the input image to form the input sequence.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "unspecified",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Attention Maps",
+    "quote": "Extracts features from the input image to form the input sequence.",
+    "char_start": 78110,
+    "char_end": 78891,
+    "label": null
+   }
+  },
+  {
+   "name": "Prediction head",
+   "role": "Pre-trained module that is removed for fine-tuning.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "unspecified",
+    "ordering": "unspecified",
+    "regime": "unspecified",
+    "norm_position": "unspecified",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Multihead Self-attention",
+    "quote": "Pre-trained module that is removed for fine-tuning.",
+    "char_start": 49302,
+    "char_end": 50633,
+    "label": null
+   }
+  },
+  {
+   "name": "Feedforward layer",
+   "role": "Zero-initialized D by K feedforward layer attached for fine-tuning after removing the pre-trained prediction head.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "unspecified",
+    "ordering": "unspecified",
+    "regime": "unspecified",
+    "norm_position": "unspecified",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "Layernorm",
+   "role": "Layernorm (LN) is applied before every block, and residual connections after every block",
+   "inputs": [],
+   "outputs": [],
+   "equations": [
+    {
+     "latex": "\\mbf{z^\\prime}_\\ell = \\op{MSA}(\\op{LN}(\\mbf{z}_{\\ell-1})) + \\mbf{z}_{\\ell-1}, && \\ell=1\\ldots L",
+     "description": "Multiheaded self-attention block with pre-layernorm and residual connection.",
+     "provenance": {
+      "section": "Model",
+      "quote": "Layernorm (LN) is applied before every block, and residual connections after every block",
+      "char_start": 23341,
+      "char_end": 23429,
+      "label": null
+     },
+     "implements": "Layernorm"
+    },
+    {
+     "latex": "\\mbf{z}__\\ell = \\op{MLP}(\\op{LN}(\\mbf{z^\\prime}_{\\ell})) + \\mbf{z^\\prime}_{\\ell}, && \\ell=1\\ldots L",
+     "description": "MLP block with pre-layernorm and residual connection.",
+     "provenance": {
+      "section": "Model",
+      "quote": "Layernorm (LN) is applied before every block, and residual connections after every block",
+      "char_start": 23341,
+      "char_end": 23429,
+      "label": null
+     },
+     "implements": "Layernorm"
+    },
+    {
+     "latex": "\\mbf{y} = \\op{LN}(\\mbf{z}_L^0)",
+     "description": "Final representation output from layernorm.",
+     "provenance": null,
+     "implements": "Layernorm"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "any",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "Residual connections",
+   "role": "Residual connections are applied after every block",
+   "inputs": [],
+   "outputs": [],
+   "equations": [
+    {
+     "latex": "\\mbf{z^\\prime}_\\ell = \\op{MSA}(\\op{LN}(\\mbf{z}_{\\ell-1})) + \\mbf{z}_{\\ell-1}, && \\ell=1\\ldots L",
+     "description": "Applies multiheaded self-attention with pre-layernorm and a residual connection.",
+     "provenance": {
+      "section": "Model",
+      "quote": "Layernorm (LN) is applied before every block, and residual connections after every block",
+      "char_start": 23341,
+      "char_end": 23429,
+      "label": null
+     },
+     "implements": "Residual connections"
+    },
+    {
+     "latex": "\\mbf{z}_\\ell = \\op{MLP}(\\op{LN}(\\mbf{z^\\prime}_{\\ell})) + \\mbf{z^\\prime}_{\\ell}, && \\ell=1\\ldots L",
+     "description": "Applies MLP with pre-layernorm and a residual connection.",
+     "provenance": {
+      "section": "Model",
+      "quote": "Layernorm (LN) is applied before every block, and residual connections after every block",
+      "char_start": 23341,
+      "char_end": 23429,
+      "label": null
+     },
+     "implements": "Residual connections"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "any",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "Classification token",
+   "role": "An extra learnable classification token added to the sequence in order to perform classification",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "sequence",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "unspecified",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Head Type and class token",
+    "quote": "An extra learnable classification token added to the sequence in order to perform classification",
+    "char_start": 66795,
+    "char_end": 67726,
+    "label": null
+   }
+  },
+  {
+   "name": "Trainable linear projection",
+   "role": "Flattens the patches and maps to D dimensions",
+   "inputs": [
+    {
+     "name": "flattened 2D patches",
+     "shape": [
+      "N",
+      "P^2 * C"
+     ],
+     "dtype": null,
+     "description": "sequence of flattened 2D patches"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "patch embeddings",
+     "shape": [
+      "N",
+      "D"
+     ],
+     "dtype": null,
+     "description": "output of this projection"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "\\mbf{z}_0 = [ \\mbf{x}_\\text{class}; \\, \\mbf{x}^1_p \\mbf{E}; \\, \\mbf{x}^2_p \\mbf{E}; \\cdots; \\, \\mbf{x}^{N}_p \\mbf{E} ] + \\mbf{E}_{pos}, && \\mbf{E} \\in \\mathbb{R}^{(P^2 \\cdot C) \\times D},\\, \\mbf{E}_{pos}  \\in \\mathbb{R}^{(N + 1) \\times D}",
+     "description": "The Transformer uses constant latent vector size D through all of its layers, so we flatten the patches and map to D dimensions with a trainable linear projection (Eq.~1).",
+     "provenance": {
+      "section": "Model",
+      "quote": "The Transformer uses constant latent vector size $D$ through all of its layers, so we flatten the patches and map to $D$ dimensions with a trainable linear projection (Eq.~\\ref{eq:embedding}).",
+      "char_start": 21988,
+      "char_end": 22180,
+      "label": null
+     },
+     "implements": "Trainable linear projection"
+    }
+   ],
+   "hyperparameters": [
+    {
+     "name": "patch size",
+     "value": "(P,P)",
+     "unit": null,
+     "applies_to": null,
+     "confidence": "stated",
+     "provenance": {
+      "section": "Model",
+      "quote": "(P,P) is the resolution of each image patch",
+      "char_start": 21813,
+      "char_end": 21857,
+      "label": null
+     },
+     "notes": null
+    },
+    {
+     "name": "latent vector size D",
+     "value": "D",
+     "unit": null,
+     "applies_to": null,
+     "confidence": "stated",
+     "provenance": {
+      "section": "Model",
+      "quote": "The Transformer uses constant latent vector size $D$ through all of its layers",
+      "char_start": 21988,
+      "char_end": 22066,
+      "label": null
+     },
+     "notes": null
+    }
+   ],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "any",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": null
+  }
+ ],
+ "hyperparameters": [],
+ "training": {
+  "objective": null,
+  "optimizer": "Adam (pre-training) and SGD with momentum (fine-tuning)",
+  "schedule": "linear learning rate warmup and decay",
+  "hyperparameters": [
+   {
+    "name": "beta_1",
+    "value": "0.9",
+    "unit": null,
+    "applies_to": "Training all models",
+    "confidence": "guess",
+    "provenance": null,
+    "notes": null
+   },
+   {
+    "name": "beta_2",
+    "value": "0.999",
+    "unit": null,
+    "applies_to": "Training all models",
+    "confidence": "guess",
+    "provenance": null,
+    "notes": null
+   },
+   {
+    "name": "batch size",
+    "value": "4096",
+    "unit": null,
+    "applies_to": "Pre-training",
+    "confidence": "guess",
+    "provenance": null,
+    "notes": null
+   },
+   {
+    "name": "weight decay",
+    "value": "0.1",
+    "unit": null,
+    "applies_to": "Pre-training",
+    "confidence": "guess",
+    "provenance": null,
+    "notes": null
+   },
+   {
+    "name": "batch size",
+    "value": "512",
+    "unit": null,
+    "applies_to": "Fine-tuning",
+    "confidence": "guess",
+    "provenance": null,
+    "notes": null
+   },
+   {
+    "name": "Polyak averaging factor",
+    "value": "0.9999",
+    "unit": null,
+    "applies_to": "ImageNet results in Table 2",
+    "confidence": "guess",
+    "provenance": null,
+    "notes": null
+   }
+  ],
+  "datasets": [
+   "ILSVRC-2012 ImageNet",
+   "ImageNet-21k",
+   "JFT",
+   "CIFAR-10",
+   "CIFAR-100",
+   "Oxford-IIIT Pets",
+   "Oxford Flowers-102",
+   "VTAB classification suite"
+  ],
+  "hardware": "TPUv3",
+  "equations": []
+ },
+ "unknowns": [],
+ "official_repo": "https://github.com/google-research/vision_transformer"
+}

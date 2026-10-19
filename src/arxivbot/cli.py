@@ -166,6 +166,47 @@ def _print_spec(spec, source: str | None = None) -> None:
             print(f"  [{unknown.severity.value:11}] {unknown.question}")
 
 
+def _merge(args: argparse.Namespace) -> int:
+    from arxivbot import store
+    from arxivbot.merge import merge, render
+
+    specs = {}
+    for arxiv_id in (args.host, args.donor):
+        hit = store.get(arxiv_id)
+        if hit is None:
+            print(
+                f"no spec for {arxiv_id} yet - run: arxivbot spec {arxiv_id}",
+                file=sys.stderr,
+            )
+            return 1
+        specs[arxiv_id] = hit.spec
+
+    # Everything else already extracted is the corpus a resemblance is
+    # measured against. It is whatever this machine happens to hold, which is
+    # why the output ranks rather than rules on novelty.
+    known = [
+        hit.spec
+        for other in store.list_local()
+        if other not in (args.host, args.donor)
+        if (hit := store.get(other, use_shared=False)) is not None
+    ]
+
+    try:
+        hybrid = merge(
+            specs[args.host],
+            specs[args.donor],
+            args.component,
+            replaces=args.replaces,
+            known=known,
+        )
+    except LookupError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    print(render(hybrid))
+    return 0
+
+
 def _ask(args: argparse.Namespace) -> int:
     from arxivbot import store
     from arxivbot.deviation import banner, check
@@ -311,6 +352,17 @@ def main(argv: list[str] | None = None) -> int:
     emit.add_argument("arxiv_id", help="arXiv id or URL")
     emit.add_argument("query", help="what you want")
     emit.set_defaults(func=_emit)
+
+    fuse = sub.add_parser(
+        "merge", help="put one paper's component into another paper's architecture"
+    )
+    fuse.add_argument("host", help="arXiv id of the architecture to keep")
+    fuse.add_argument("donor", help="arXiv id of the paper to take a part from")
+    fuse.add_argument("component", help="the donor component, e.g. 'rotary embedding'")
+    fuse.add_argument(
+        "--replaces", help="the host component it stands in for; added alongside if omitted"
+    )
+    fuse.set_defaults(func=_merge)
 
     web = sub.add_parser("serve", help="open the local web interface")
     web.add_argument("--port", type=int, default=8000)

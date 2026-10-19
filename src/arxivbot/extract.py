@@ -33,13 +33,18 @@ from arxivbot.ingest.latex import (
 )
 from arxivbot.llm import LLMConfig, LLMError, complete_json
 from arxivbot.spec import (
+    Assumptions,
     Component,
     Confidence,
     Equation,
     Extractor,
     Hyperparameter,
     ImplementationSpec,
+    Modality,
+    NormPosition,
+    Ordering,
     Provenance,
+    Regime,
     Severity,
     TensorSpec,
     TrainingSpec,
@@ -138,11 +143,45 @@ class Missing(BaseModel):
     components: list[ComponentSketch] = Field(default_factory=list)
 
 
+class RawAssumptions(BaseModel):
+    """The assumption axes, as the model must answer them.
+
+    Deliberately separate from :class:`Assumptions`: the stored model gives
+    every axis a default so old specs still load, and those same defaults let
+    the model skip the question entirely.
+    """
+
+    modality: Modality = Field(
+        default=Modality.UNSPECIFIED,
+        description="What this component expects to be handed",
+    )
+    ordering: Ordering = Field(
+        default=Ordering.UNSPECIFIED,
+        description="Whether reordering the input changes the output",
+    )
+    regime: Regime = Field(
+        default=Regime.UNSPECIFIED,
+        description="The training setting it was designed inside",
+    )
+    norm_position: NormPosition = Field(
+        default=NormPosition.UNSPECIFIED,
+        description="Normalisation relative to the residual branch",
+    )
+
+    # Pydantic defaults keep the fallback path constructible, but the schema
+    # sent to the model lists every axis as required, so it cannot skip them.
+    model_config = {"json_schema_extra": {"required": ["modality", "ordering", "regime", "norm_position"]}}
+
+
 class ComponentDetail(BaseModel):
     inputs: list[RawTensor] = Field(default_factory=list)
     outputs: list[RawTensor] = Field(default_factory=list)
     equations: list[RawEquation] = Field(default_factory=list)
     hyperparameters: list[RawHyperparameter] = Field(default_factory=list)
+    # Required, with no default on any axis. Given one, the model simply
+    # omitted the field and pydantic filled in "unspecified" for everything -
+    # the schema, not the prompt, was deciding the answer.
+    assumptions: RawAssumptions
 
 
 class RawTraining(BaseModel):
@@ -805,6 +844,26 @@ def _detail(
         "Extract this component's input and output tensors (symbolic shapes), the "
         "equations defining it, and its hyperparameters. Quote the paper verbatim "
         "for anything you mark as stated. Omit anything the paper does not give.\n\n"
+        "Also record what this component assumes about the model around it. "
+        "Unlike the fields above, these are NOT quoted claims about what the "
+        "paper says - no paper writes them down. They are what the component "
+        "requires in order to work, which you infer from how it is used and "
+        "what kind of model this paper builds. Infer them.\n"
+        "- modality: what it is handed. A paper about language hands its blocks "
+        "sequences; one about images hands them images; one that first encodes "
+        "its input with another trained model hands them latents. Use `any` "
+        "only for something genuinely shape-agnostic, like a normalisation "
+        "layer or an optimiser.\n"
+        "- ordering: would reordering the input change the output? If the "
+        "component needs position to be told to it, it is ordered. If it must "
+        "give the same answer whatever the order, it is permutation-invariant.\n"
+        "- regime: the training setting it was designed inside.\n"
+        "- norm_position: `pre` if normalisation is applied inside the residual "
+        "branch before the transformation, `post` if it is applied after the "
+        "branch is added back, `none` if this component has no normalisation.\n"
+        "Use `unspecified` only when you genuinely cannot tell from the paper - "
+        "not merely because the paper does not say it outright, since it never "
+        "will.\n\n"
         f"{_text_of(relevant, doc, limit=30_000)}"
     )
     report.calls += 1
@@ -1127,7 +1186,8 @@ def extract(
             detail = _detail(sketch, doc, config, report)
         except LLMError as exc:
             report.warnings.append(f"{sketch.name}: {exc}")
-            detail = ComponentDetail()
+            # No answer means no assumptions read, not assumptions absent.
+            detail = ComponentDetail(assumptions=RawAssumptions())
 
         section = (doc.find(*sketch.name.split()[:3]) or [None])[0]
         section_title = section.title if section else "Model"
@@ -1137,6 +1197,7 @@ def extract(
                 name=sketch.name,
                 role=sketch.role,
                 depends_on=sketch.depends_on,
+                assumptions=Assumptions(**detail.assumptions.model_dump()),
                 inputs=[TensorSpec(**t.model_dump()) for t in detail.inputs],
                 outputs=[TensorSpec(**t.model_dump()) for t in detail.outputs],
                 equations=[

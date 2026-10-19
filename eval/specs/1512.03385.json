@@ -1,0 +1,481 @@
+{
+ "arxiv_id": "1512.03385v1",
+ "title": "Deep Residual Learning for Image Recognition",
+ "extractor": {
+  "schema_version": "0.1",
+  "model": "gemini/gemini-flash-lite-latest",
+  "arxivbot_version": "0.1.0",
+  "extracted_at": "2026-10-19T13:14:21.400838Z",
+  "notes": null
+ },
+ "summary": "",
+ "components": [
+  {
+   "name": "stacked layers",
+   "role": "They are fit to approximate an underlying mapping or a residual function.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "unspecified",
+    "ordering": "unspecified",
+    "regime": "unspecified",
+    "norm_position": "unspecified",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "building block",
+   "role": "Defines the residual learning module via a residual mapping plus a shortcut connection.",
+   "inputs": [
+    {
+     "name": "x",
+     "shape": [],
+     "dtype": null,
+     "description": "input vectors of the layers considered"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "y",
+     "shape": [],
+     "dtype": null,
+     "description": "output vectors of the layers considered"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "\\ve{y}= \\mathcal{F}(\\ve{x}, \\{W_{i}\\}) + \\ve{x}",
+     "description": "Defines a building block via a residual mapping plus a shortcut connection.",
+     "provenance": {
+      "section": "Model",
+      "quote": "Formally, in this paper we consider a building block defined as: \\begin{equation}\\label{eq:identity} \\ve{y}= \\mathcal{F}(\\ve{x}, \\{W_{i}\\}) + \\ve{x}. \\end{equation}",
+      "char_start": 14411,
+      "char_end": 14575,
+      "label": null
+     },
+     "implements": "building block"
+    },
+    {
+     "latex": "\\ve{y}= \\mathcal{F}(\\ve{x}, \\{W_{i}\\}) + W_{s}\\ve{x}",
+     "description": "Defines a building block with a linear projection on the shortcut to match dimensions.",
+     "provenance": null,
+     "implements": "building block"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [
+    "shortcut connection"
+   ],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "ReLU",
+   "role": "Acts as the nonlinearity function denoted by sigma.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "shortcut connection",
+   "role": "Insert shortcut connections which turn the network into its counterpart residual version.",
+   "inputs": [
+    {
+     "name": "x",
+     "shape": [],
+     "dtype": null,
+     "description": "input vectors or feature maps of the layers considered"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "y",
+     "shape": [],
+     "dtype": null,
+     "description": "output vectors or feature maps of the layers considered"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "\\ve{y}= \\mathcal{F}(\\ve{x}, \\{W_{i}\\}) + \\ve{x}",
+     "description": "Computes the output vector as the sum of the residual mapping and the input.",
+     "provenance": null,
+     "implements": "shortcut connection"
+    },
+    {
+     "latex": "\\ve{y}= \\mathcal{F}(\\ve{x}, \\{W_{i}\\}) + W_{s}\\ve{x}",
+     "description": "Computes the output vector with a linear projection W_s on the shortcut connection to match dimensions.",
+     "provenance": null,
+     "implements": "shortcut connection"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Identity Mapping by Shortcuts",
+    "quote": "Insert shortcut connections which turn the network into its counterpart residual version.",
+    "char_start": 14260,
+    "char_end": 17462,
+    "label": null
+   }
+  },
+  {
+   "name": "linear projection",
+   "role": "Performs a linear projection W_s by the shortcut connections to match dimensions when the dimensions of x and F are not equal.",
+   "inputs": [
+    {
+     "name": "x",
+     "shape": [],
+     "dtype": null,
+     "description": "input vector of the layers considered"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "y",
+     "shape": [],
+     "dtype": null,
+     "description": "output vector of the layers considered"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "ve{y}= \\mathcal{F}(\\ve{x}, \\{W_{i}\\}) + W_{s}\\ve{x}",
+     "description": "Performs a linear projection W_s by the shortcut connections to match dimensions when the dimensions of x and F are not equal.",
+     "provenance": null,
+     "implements": "linear projection"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "convolutional layers",
+   "role": "The convolutional layers mostly have 3x3 filters and follow two simple design rules for feature map sizes and filter counts.",
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "y",
+     "shape": [],
+     "dtype": null,
+     "description": "output vectors of the layers considered"
+    }
+   ],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "global average pooling layer",
+   "role": "The network ends with a global average pooling layer and a 1000-way fully-connected layer with softmax.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "permutation_invariant",
+    "regime": "supervised",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "fully-connected layer with softmax",
+   "role": "The network ends with a global average pooling layer and a 1000-way fully-connected layer with softmax.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [
+    {
+     "name": "output classes",
+     "value": "1000",
+     "unit": null,
+     "applies_to": "ImageNet architecture",
+     "confidence": "stated",
+     "provenance": {
+      "section": "Model",
+      "quote": "The network ends with a global average pooling layer and a 1000-way fully-connected layer with softmax.",
+      "char_start": 18249,
+      "char_end": 18352,
+      "label": null
+     },
+     "notes": null
+    }
+   ],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "permutation_invariant",
+    "regime": "supervised",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "identity shortcuts",
+   "role": "Can be directly used when the input and output are of the same dimensions.",
+   "inputs": [
+    {
+     "name": "x",
+     "shape": [],
+     "dtype": null,
+     "description": "input vector"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "y",
+     "shape": [],
+     "dtype": null,
+     "description": "output vector"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "\\ve{y}= \\mathcal{F}(\\ve{x}, \\{W_{i}\\}) + \\ve{x}",
+     "description": "Computes the output vector of the building block via residual mapping and identity shortcut.",
+     "provenance": {
+      "section": "Identity Mapping by Shortcuts",
+      "quote": "A building block is shown in Fig.~\\ref{fig:block}. Formally, in this paper we consider a building block defined as: \\begin{equation}\\label{eq:identity} \\ve{y}= \\mathcal{F}(\\ve{x}, \\{W_{i}\\}) + \\ve{x}. \\end{equation}",
+      "char_start": 14360,
+      "char_end": 14575,
+      "label": null
+     },
+     "implements": "identity shortcuts"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "post",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Identity Mapping by Shortcuts",
+    "quote": "Can be directly used when the input and output are of the same dimensions.",
+    "char_start": 14260,
+    "char_end": 17462,
+    "label": null
+   }
+  },
+  {
+   "name": "projection shortcut",
+   "role": "Used to match dimensions done by 1x1 convolutions.",
+   "inputs": [
+    {
+     "name": "x",
+     "shape": [],
+     "dtype": null,
+     "description": "the input vectors of the layers considered"
+    },
+    {
+     "name": "W_s",
+     "shape": [],
+     "dtype": null,
+     "description": "a linear projection by the shortcut connections to match the dimensions"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "y",
+     "shape": [],
+     "dtype": null,
+     "description": "the output vectors of the layers considered"
+    }
+   ],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Identity Mapping by Shortcuts",
+    "quote": "Used to match dimensions done by 1x1 convolutions.",
+    "char_start": 14260,
+    "char_end": 17462,
+    "label": null
+   }
+  },
+  {
+   "name": "scale augmentation",
+   "role": "Resizes the image with its shorter side randomly sampled in [256, 480].",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [
+    {
+     "name": "shorter side range",
+     "value": "[256, 480]",
+     "unit": null,
+     "applies_to": "scale augmentation",
+     "confidence": "guess",
+     "provenance": null,
+     "notes": null
+    }
+   ],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "color augmentation",
+   "role": "Standard color augmentation used on the images.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "supervised",
+    "norm_position": "pre",
+    "notes": null
+   },
+   "provenance": null
+  }
+ ],
+ "hyperparameters": [],
+ "training": {
+  "objective": null,
+  "optimizer": "SGD",
+  "schedule": "We start with a learning rate of 0.1, divide it by 10 at 32k and 48k iterations, and terminate training at 64k iterations",
+  "hyperparameters": [
+   {
+    "name": "weight decay",
+    "value": "0.0001",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "guess",
+    "provenance": null,
+    "notes": null
+   },
+   {
+    "name": "momentum",
+    "value": "0.9",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "guess",
+    "provenance": null,
+    "notes": null
+   },
+   {
+    "name": "mini-batch size",
+    "value": "128",
+    "unit": null,
+    "applies_to": "CIFAR-10",
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "These models are trained with a mini-batch size of 128 on two GPUs.",
+     "char_start": 38760,
+     "char_end": 38827,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "initial learning rate",
+    "value": "0.1",
+    "unit": null,
+    "applies_to": "CIFAR-10 (standard models)",
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We start with a learning rate of 0.1, divide it by 10 at 32k and 48k iterations, and terminate training at 64k iterations, which is determined on a 45k/5k train/val split.",
+     "char_start": 38828,
+     "char_end": 38999,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "initial learning rate",
+    "value": "0.01",
+    "unit": null,
+    "applies_to": "110-layer ResNet on CIFAR-10",
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "So we use 0.01 to warm up the training until the training error is below 80% (about 400 iterations), and then go back to 0.1 and continue training.",
+     "char_start": 40271,
+     "char_end": 40419,
+     "label": null
+    },
+    "notes": null
+   }
+  ],
+  "datasets": [
+   "ImageNet 2012",
+   "CIFAR-10",
+   "PASCAL VOC 2007",
+   "PASCAL VOC 2012",
+   "MS COCO"
+  ],
+  "hardware": "two GPUs",
+  "equations": []
+ },
+ "unknowns": [],
+ "official_repo": null
+}
