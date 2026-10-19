@@ -1,76 +1,91 @@
 {
  "generated": "2026-10-19",
- "commit": "05efb82",
+ "commit": "b75205e",
  "corpus": {
   "papers": 30,
-  "extracted": 30,
-  "refused": 0,
+  "extracted": 28,
+  "refused": 2,
   "components": 7.3,
-  "gaps": 3.0,
-  "quotes": 0.769
+  "gaps": 1.7,
+  "quotes": 0.763,
+  "gaps_unread": [
+   "MAML",
+   "LayerNorm"
+  ]
  },
  "areas": [
   {
    "area": "efficiency",
    "papers": 5,
-   "components": 7.6,
-   "gaps": 3.2,
-   "quotes": 0.538
+   "components": 7.2,
+   "gaps": 1.2,
+   "quotes": 0.614
   },
   {
    "area": "generative",
    "papers": 5,
-   "components": 7.0,
-   "gaps": 2.2,
-   "quotes": 0.631
+   "components": 6.8,
+   "gaps": 3.0,
+   "quotes": 0.738
   },
   {
    "area": "graph",
    "papers": 3,
-   "components": 7.3,
-   "gaps": 2.0,
-   "quotes": 0.952
+   "components": 5.7,
+   "gaps": 0.0,
+   "quotes": 1.0
   },
   {
    "area": "optimisation",
-   "papers": 3,
-   "components": 5.0,
-   "gaps": 1.3,
-   "quotes": 0.708
+   "papers": 2,
+   "components": 1.0,
+   "gaps": 0.0,
+   "quotes": 0.812
   },
   {
    "area": "rl",
-   "papers": 5,
-   "components": 6.0,
-   "gaps": 3.8,
-   "quotes": 0.8
+   "papers": 4,
+   "components": 5.2,
+   "gaps": 0.3,
+   "quotes": 0.75
   },
   {
    "area": "transformer",
    "papers": 5,
-   "components": 8.6,
-   "gaps": 4.4,
-   "quotes": 0.885
+   "components": 9.8,
+   "gaps": 2.8,
+   "quotes": 0.864
   },
   {
    "area": "vision",
    "papers": 4,
-   "components": 9.0,
-   "gaps": 2.8,
-   "quotes": 0.89
+   "components": 11.5,
+   "gaps": 2.2,
+   "quotes": 0.783
   }
  ],
- "refused": [],
+ "refused": [
+  {
+   "id": "1707.06347",
+   "short": "PPO",
+   "why": "ingest: this submission has no LaTeX source: it is a PDF wrapped in a LaTeX file. Nothing can be extracted from it."
+  },
+  {
+   "id": "1412.6980",
+   "short": "Adam",
+   "why": "ingest: this submission has no LaTeX source: it is a PDF wrapped in a LaTeX file. Nothing can be extracted from it."
+  }
+ ],
  "algorithm_blocks": {
   "with": {
    "papers": 11,
-   "components": 6.8,
-   "quotes": 0.827
+   "components": 5.2,
+   "quotes": 0.831
   },
   "without": {
-   "papers": 19,
-   "components": 7.6,
-   "quotes": 0.735
+   "papers": 17,
+   "components": 8.7,
+   "quotes": 0.72
   }
  },
  "audit": {

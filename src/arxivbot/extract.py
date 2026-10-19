@@ -351,6 +351,14 @@ class Report:
     refuted_gaps: list[str] = field(default_factory=list)
     """Gaps withdrawn because the answer was found elsewhere in the paper."""
 
+    gaps_read: bool = True
+    """False when the gap pass could not run at all.
+
+    Without this an empty `unknowns` is ambiguous: it means either that the
+    paper specifies everything or that the provider refused the call. A
+    corpus run hit a quota mid-way and recorded "0 gaps" for both, which is
+    the project's cardinal failure - a failure that looks like a result."""
+
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -1268,6 +1276,7 @@ def extract(
                     )
                 )
         except LLMError as exc:
+            report.gaps_read = False
             report.warnings.append(f"unknowns: {exc}")
 
     # A depends_on naming something that was never extracted is an artifact of

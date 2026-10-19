@@ -122,6 +122,15 @@ export default function EvidencePage() {
             source. It varies widely by field, and the low end is a known
             weakness rather than a rounding error.
           </p>
+          {corpus.gaps_unread.length > 0 ? (
+            <p className="mt-3 max-w-[46rem] font-mono text-2xs leading-relaxed text-red-ink">
+              The provider refused the gap pass partway through this run, so{" "}
+              {corpus.gaps_unread.join(" and ")} carry no gap count and are left
+              out of that average. A refused call is not a paper without gaps,
+              and recording it as zero would have been the exact mistake this
+              tool exists to catch.
+            </p>
+          ) : null}
         </section>
 
         {/* ---- the audit: the part that went wrong ---- */}

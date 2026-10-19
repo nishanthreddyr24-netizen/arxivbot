@@ -103,6 +103,12 @@ def main() -> None:
             "components": round(mean([e.get("n_components") for e in ok]), 1),
             "gaps": round(mean([e.get("n_gaps") for e in ok]), 1),
             "quotes": round(mean([e.get("quote_accuracy") for e in ok]), 3),
+            # Papers whose gap pass was refused mid-run. They carry no gap
+            # count, and saying so is the difference between a measurement
+            # and an average with a hole in it.
+            "gaps_unread": [
+                e.get("short", "") for e in ok if e.get("gaps_read") is False
+            ],
         },
         "areas": areas,
         # Papers that ship a PDF wrapped in LaTeX. Refusing them is the

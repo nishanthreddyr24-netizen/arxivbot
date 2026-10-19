@@ -142,7 +142,11 @@ def run_breadth(results: dict, limit: int | None) -> None:
                 {"question": u.question, "severity": u.severity.value}
                 for u in spec.unknowns
             ],
-            n_gaps=len(spec.unknowns),
+            # None, not 0, when the pass never ran. Averaging a refused call
+            # in as "this paper specifies everything" is how a quota outage
+            # turns itself into a finding.
+            n_gaps=len(spec.unknowns) if report.gaps_read else None,
+            gaps_read=report.gaps_read,
             stated=counts["stated"],
             unverified=counts["guess"] + counts["conventional"],
             quote_accuracy=report.quote_accuracy,
@@ -237,6 +241,15 @@ def report(results: dict) -> None:
     (HERE / "results.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
 
     print(f"\n{'=' * 66}\nPHASE 1 — {len(breadth)} papers extracted, {len(failed)} failed\n")
+
+    # A refused gap pass is not a paper without gaps, and must not be read as
+    # one. These rows carry no gap number and are excluded from the averages.
+    degraded = [e for e in breadth if e.get("gaps_read") is False]
+    if degraded:
+        print(
+            f"gap pass refused on {len(degraded)} paper(s), so they carry no "
+            f"gap count: {', '.join(e['short'] for e in degraded)}\n"
+        )
 
     if failed:
         print("failed:")
