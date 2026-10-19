@@ -95,7 +95,7 @@ export function Trace(props: Props) {
             aria-pressed={tab === name}
             onClick={() => setTab(name)}
             className={[
-              "flex-1 border-r border-hairline px-4 py-3 font-mono text-[12px] last:border-r-0",
+              "flex-1 border-r border-hairline px-4 py-3 font-mono text-xs last:border-r-0",
               tab === name ? "text-red-ink" : "text-muted",
             ].join(" ")}
           >
@@ -108,24 +108,24 @@ export function Trace(props: Props) {
         {/* ---- paper ---- */}
         <div
           className={[
-            "min-w-0 border-hairline p-6 lg:border-r",
+            "min-w-0 border-hairline p-5 lg:border-r sm:p-6",
             tab === "paper" ? "block" : "hidden lg:block",
           ].join(" ")}
         >
-          <div className="flex items-baseline gap-3 font-mono text-[12px]">
+          <div className="flex items-baseline gap-3 font-mono text-xs">
             <span className="text-red-ink">{props.arxivId}</span>
             <span className="text-faint">{props.category}</span>
           </div>
-          <h3 className="mt-3 text-[1.35rem] leading-tight text-ink">{props.title}</h3>
-          <p className="mt-2 truncate font-mono text-[11px] text-faint">
+          <h3 className="mt-3 text-xl text-ink">{props.title}</h3>
+          <p className="mt-2 truncate font-mono text-2xs text-faint">
             {props.authors}
           </p>
 
-          <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.11em] text-muted">
+          <p className="mt-5 font-mono text-2xs uppercase tracking-[0.11em] text-muted">
             {props.section}
           </p>
 
-          <p className="mt-3 text-[15px] leading-[1.7] text-muted">
+          <p className="mt-3 text-base text-muted">
             {props.excerpt.map((piece, index) =>
               piece.kind === "mark" ? (
                 <span
@@ -145,7 +145,7 @@ export function Trace(props: Props) {
             className="mt-5 overflow-x-auto text-ink"
             dangerouslySetInnerHTML={{ __html: props.equationHtml }}
           />
-          <p className="mt-2 font-mono text-[11px] text-faint">{props.equationNote}</p>
+          <p className="mt-2 font-mono text-2xs text-faint">{props.equationNote}</p>
         </div>
 
         {/* ---- code ---- */}
@@ -216,20 +216,20 @@ function CodePanel({
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-4 border-b border-hairline px-5 py-3">
-        <span className="font-mono text-[12px] text-muted">
+        <span className="font-mono text-xs text-muted">
           sliding_window_attention.py
         </span>
         <div className="ml-auto flex items-center gap-4">
           <a
             href="https://arxiv.org/abs/2310.06825"
-            className="font-mono text-[12px] text-muted underline-offset-4 hover:text-red-ink hover:underline"
+            className="font-mono text-xs text-muted underline-offset-4 hover:text-red-ink hover:underline"
           >
             Verify against paper
           </a>
           <button
             type="button"
             onClick={copy}
-            className="font-mono text-[12px] text-muted hover:text-red-ink"
+            className="font-mono text-xs text-muted hover:text-red-ink"
           >
             {copied ? "Copied" : "Copy"}
           </button>
@@ -244,15 +244,15 @@ function CodePanel({
           aria-hidden
           className="pointer-events-none absolute left-0 w-1 bg-red-ink/50"
           style={{
-            // 1.25rem is the panel padding; the line box is 1.7 x the 12.5px
+            // 1.25rem is the panel padding; the line box is 1.7 x the 11px
             // type, which has to be stated in px because this element does not
             // inherit the code block's font size.
-            top: `calc(1.25rem + ${(first - 1) * 1.7 * 11.5}px)`,
-            height: `${count * 1.7 * 11.5}px`,
+            top: `calc(1.25rem + ${(first - 1) * 1.7 * 11}px)`,
+            height: `${count * 1.7 * 11}px`,
           }}
         />
         <div
-          className="trace-code font-mono text-[11.5px] leading-[1.7]"
+          className="trace-code font-mono text-2xs leading-[1.7]"
           dangerouslySetInnerHTML={{ __html: codeHtml }}
         />
       </div>

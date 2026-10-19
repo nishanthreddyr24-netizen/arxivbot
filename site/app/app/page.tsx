@@ -16,14 +16,14 @@ export default async function AppPage({
 
   return (
     <>
-      <header className="flex h-12 items-center gap-5 border-b border-hairline px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-mono text-[13px] text-ink">
+      <header className="flex h-12 shrink-0 items-center gap-5 border-b border-hairline px-4 sm:px-6">
+        <Link href="/" className="flex items-center gap-2 font-mono text-sm text-ink">
           <span aria-hidden className="size-1.5 bg-red-fill" />
           arxiv&rarr;code
         </Link>
         <Link
           href="/"
-          className="ml-auto font-mono text-[13px] text-muted underline-offset-4 hover:text-red-ink hover:underline"
+          className="ml-auto font-mono text-sm text-muted underline-offset-4 hover:text-red-ink hover:underline"
         >
           New paper
         </Link>

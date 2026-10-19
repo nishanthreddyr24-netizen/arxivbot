@@ -18,7 +18,16 @@ export default async function Home() {
       <main>
         <Hero />
 
-        <section className="mx-auto max-w-[1120px] px-4 pb-16 sm:px-6">
+        <section className="mx-auto max-w-[1120px] px-4 sm:px-6">
+          {/* The panel was unlabelled, so it read as decoration rather than
+              as the one worked example the page is built around. */}
+          <div className="flex items-baseline gap-4 border-b border-hairline-strong pb-2">
+            <h2 className="font-mono text-2xs uppercase tracking-[0.11em] text-muted">
+              One sentence, traced into code
+            </h2>
+            <span className="font-mono text-2xs text-faint">worked example</span>
+          </div>
+          <div className="pt-4">
           <Trace
             arxivId={TRACE.arxivId}
             title={TRACE.title}
@@ -32,6 +41,7 @@ export default async function Home() {
             code={TRACE.code}
             derivedLines={TRACE.derivedLines}
           />
+          </div>
         </section>
 
         <Listing />

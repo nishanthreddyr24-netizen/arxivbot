@@ -12,12 +12,31 @@
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
 
+/**
+ * Where a claim came from. The quote is verbatim from the authors' LaTeX and
+ * the service rejects anything it cannot locate, so a claim carrying one has
+ * been checked and a claim without one has not. The UI leans on that.
+ */
+export type Provenance = {
+  section: string;
+  quote: string;
+  char_start?: number;
+  char_end?: number;
+};
+
 export type Hyperparameter = {
   name: string;
   value: string | null;
   confidence: string;
   applies_to?: string | null;
-  provenance?: { section: string; quote: string } | null;
+  provenance?: Provenance | null;
+};
+
+export type Equation = {
+  latex: string;
+  description: string;
+  implements?: string | null;
+  provenance?: Provenance | null;
 };
 
 export type Component = {
@@ -25,7 +44,8 @@ export type Component = {
   role: string;
   depends_on?: string[];
   hyperparameters?: Hyperparameter[];
-  equations?: { latex: string; description: string }[];
+  equations?: Equation[];
+  provenance?: Provenance | null;
 };
 
 export type Unknown = {
@@ -33,6 +53,13 @@ export type Unknown = {
   why_it_matters: string;
   severity: "blocking" | "significant" | "minor";
   conventional_default?: string | null;
+  searched?: string[];
+};
+
+export type Training = {
+  optimizer?: string | null;
+  schedule?: string | null;
+  hyperparameters?: Hyperparameter[];
 };
 
 export type Spec = {
@@ -41,6 +68,8 @@ export type Spec = {
   summary?: string;
   official_repo?: string | null;
   components: Component[];
+  hyperparameters?: Hyperparameter[];
+  training?: Training | null;
   unknowns: Unknown[];
   extractor: { model: string; schema_version: string; extracted_at: string };
 };

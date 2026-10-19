@@ -24,14 +24,39 @@
   --color-red-ink: #ff5a4d;
   --color-red-dim: #7d2b24;
 
+  /* Code sits a shade below the page, so the two panes of the tool read as
+     different materials without a second border or a shadow. */
+  --color-sunken: #0a0908;
+
   --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, Menlo, Consolas, monospace;
 
   --radius-none: 0px;
   --radius-xs: 2px;
 
-  /* 8px grid. */
-  --spacing: 8px;
+  /* 4px grid, so `px-4` is the 16px gutter it reads as. At 8px every spacing
+     class was silently worth double its name: the pages were laid out on a
+     64px rhythm nobody chose, and the phone gutter came out at 32px. */
+  --spacing: 4px;
+
+  /* One scale, seven steps, used everywhere. Before this the two pages had
+     twelve ad-hoc sizes between 10.5 and 27px and no two rows agreed. Mono
+     reads about 6% smaller than the serif at the same size, so the mono steps
+     below `base` are the ones the labels and values use. */
+  --text-2xs: 11px;
+  --text-2xs--line-height: 1.45;
+  --text-xs: 12px;
+  --text-xs--line-height: 1.5;
+  --text-sm: 13px;
+  --text-sm--line-height: 1.6;
+  --text-base: 15px;
+  --text-base--line-height: 1.62;
+  --text-lg: 17px;
+  --text-lg--line-height: 1.6;
+  --text-xl: 21px;
+  --text-xl--line-height: 1.28;
+  --text-2xl: 27px;
+  --text-2xl--line-height: 1.18;
 }
 
 html {
@@ -42,7 +67,7 @@ body {
   background: var(--color-ground);
   color: var(--color-ink);
   font-family: var(--font-serif);
-  font-size: 17px;
+  font-size: var(--text-lg);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
@@ -53,6 +78,13 @@ body {
   outline: 2px solid var(--color-red-ink);
   outline-offset: 2px;
   border-radius: var(--radius-xs);
+}
+
+/* The tool scrolls two panes at once; the platform scrollbar is a wide pale
+   slab that reads as a third column. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-hairline-strong) transparent;
 }
 
 ::selection {
@@ -97,4 +129,26 @@ body {
 }
 .katex {
   font-size: 1.05em;
+}
+
+/* A numbered gutter for the generated skeleton. Counters rather than rendered
+   digits, so selecting the code copies the code and not the numbers, and a
+   wrapped line keeps one number instead of gaining a second. */
+.code-lines {
+  counter-reset: line;
+}
+.code-lines > span {
+  display: block;
+  position: relative;
+  padding-left: 3.5em;
+}
+.code-lines > span::before {
+  counter-increment: line;
+  content: counter(line);
+  position: absolute;
+  left: 0;
+  width: 2.5em;
+  text-align: right;
+  color: var(--color-faint);
+  user-select: none;
 }
