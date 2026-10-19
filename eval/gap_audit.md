@@ -84,3 +84,36 @@ Model proposes, code disposes - applied to the one claim that so far escaped
 it. Target: false gaps below 10%, re-measured on this same 20.
 
 Also to fix: `Document.appendix()` returning the entire document (LoRA).
+
+## Measured after the fix
+
+Retrieval alone, asking only whether the refuting sentence is reachable:
+**6 of 7**. The miss is LoRA's table of adapted weight matrices, where the
+question and the section that answers it share almost no vocabulary.
+
+End to end against all sixteen audited gaps that could be re-run, with the
+model making the judgement:
+
+    13 / 16 correct
+    real gaps kept       9 / 9    (first run)   8 / 9  (second run)
+    false gaps dropped   4 / 7    (first run)   5 / 7  (second run)
+
+The direction of the errors matters more than the count. Keeping a gap that
+should have been dropped leaves today's behaviour unchanged; dropping one
+that should have been kept hides a real hole in the paper. Over two runs
+there was one drop of a gap the audit called real - BatchNorm's weight
+initialisation - and the quote it produced is genuine text from the paper:
+*"the weights initialized to small random Gaussian values"*. That is stated
+for the MNIST network and not for the ImageNet experiments the question was
+about, so the audit and the checker disagree on a question that is genuinely
+ambiguous rather than on a fact.
+
+Two cautions on these numbers. The twenty-gap audit is itself a hand
+judgement and not ground truth. And the two runs disagree with each other on
+three gaps, which is the same non-determinism the extractor has, now visible
+in a second place.
+
+Prompt detail that moved the result most: hyperparameters live in tables, and
+asking for *"the sentence that states it"* made the model reject a table row
+as evidence. Allowing a row or an equation line fixed RoBERTa and both MAML
+gaps in one change.

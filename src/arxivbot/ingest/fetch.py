@@ -8,11 +8,12 @@ the primary path here; ``pdf_url`` on the metadata is left for a fallback.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -127,9 +128,29 @@ def _text(node: ET.Element | None) -> str:
     return " ".join(node.text.split())
 
 
-def fetch_metadata(arxiv_id: str, *, timeout: float = 30.0) -> PaperMeta:
-    """Look up title, authors, abstract and categories via the arXiv API."""
+def fetch_metadata(
+    arxiv_id: str, *, timeout: float = 30.0, refresh: bool = False
+) -> PaperMeta:
+    """Look up title, authors, abstract and categories via the arXiv API.
+
+    Cached like the source is. Without this a paper whose tarball is already
+    on disk still cost an API call every single time it was opened, which
+    spends the one-request-every-three-seconds budget on an answer we already
+    had, and earns a 429 for it during an evaluation run.
+    """
+    from arxivbot.storage import META as META_BUCKET
+    from arxivbot.storage import store
+
     ident = parse_id(arxiv_id)
+
+    if not refresh:
+        cached = store().get_text(META_BUCKET, ident)
+        if cached:
+            try:
+                return PaperMeta(**json.loads(cached))
+            except (ValueError, TypeError):
+                pass  # a stale shape is not worth failing over; refetch
+
     _throttle()
     try:
         response = httpx.get(
@@ -160,7 +181,7 @@ def fetch_metadata(arxiv_id: str, *, timeout: float = 30.0) -> PaperMeta:
 
     canonical = _text(entry.find(f"{{{ATOM}}}id")).rsplit("/abs/", 1)[-1]
 
-    return PaperMeta(
+    meta = PaperMeta(
         arxiv_id=canonical or ident,
         title=title,
         authors=[
@@ -178,6 +199,10 @@ def fetch_metadata(arxiv_id: str, *, timeout: float = 30.0) -> PaperMeta:
         doi=_text(entry.find(f"{{{ARXIV_NS}}}doi")) or None,
         journal_ref=_text(entry.find(f"{{{ARXIV_NS}}}journal_ref")) or None,
     )
+    # Stored under the id as asked for, so the next lookup of the bare id
+    # hits without needing to know the version arXiv resolved it to.
+    store().put_text(META_BUCKET, ident, json.dumps(asdict(meta)))
+    return meta
 
 
 def fetch_source(arxiv_id: str, *, refresh: bool = False, timeout: float = 60.0) -> bytes:

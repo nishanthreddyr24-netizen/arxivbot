@@ -15,6 +15,7 @@ That check costs nothing and catches the failure mode that matters most here.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
@@ -307,6 +308,9 @@ class Report:
 
     rejected: list[str] = field(default_factory=list)
     """Proposals consolidation judged not to be implementable units."""
+
+    refuted_gaps: list[str] = field(default_factory=list)
+    """Gaps withdrawn because the answer was found elsewhere in the paper."""
 
     warnings: list[str] = field(default_factory=list)
 
@@ -821,6 +825,221 @@ def _training(doc: Document, config: LLMConfig, report: Report) -> RawTraining |
     return complete_json(prompt, RawTraining, system=SYSTEM, config=config)
 
 
+# --------------------------------------------------------- gap refutation ----
+
+# Words that carry no retrieval signal. Most are the scaffolding of a question
+# about absence - "what exact value is specified" - and matching on them pulls
+# back the whole paper.
+_GAP_STOP = frozenset(
+    """a an the is are was were be been being of for to in on by with and or
+    not does do did what which how when where many much any their its it this
+    that from at as if then than used use using specified stated state states
+    paper authors report reported given unclear unspecified whether exact
+    specific precise other each both such during across between within same
+    different""".split()
+)
+
+# A term found this often is a theme of the paper, not a locator for one fact.
+# Terms below it are still weighted down by how common they are, so the cutoff
+# only has to catch the hopeless ones.
+_TOO_COMMON = 120
+
+# How far apart two matches can be and still describe the same passage.
+_CLUSTER = 400
+_WINDOW = 500
+_MAX_PASSAGES = 6
+
+
+class GapCheck(BaseModel):
+    """Whether the passages answer the question, decided over short text."""
+
+    answered: bool = Field(
+        description="True only if a passage states the answer outright"
+    )
+    answer: str | None = Field(
+        default=None, description="The answer, as briefly as it can be put"
+    )
+    quote: str | None = Field(
+        default=None,
+        description="The verbatim sentence stating it, copied exactly",
+    )
+
+
+def _gap_terms(question: str, applies_to: str | None) -> list[str]:
+    words = re.findall(r"[A-Za-z][A-Za-z0-9\-]{2,}", f"{question} {applies_to or ''}")
+    terms, seen = [], set()
+    for word in words:
+        lower = word.lower()
+        if lower in _GAP_STOP or lower in seen or len(lower) < 4:
+            continue
+        seen.add(lower)
+        terms.append(lower)
+    return terms
+
+
+def _passages(doc: Document, terms: list[str]) -> list[tuple[str, str]]:
+    """Windows from anywhere in the paper where several terms occur together.
+
+    The gap pass only ever sees the method and the appendix, which is why it
+    reports hyperparameters as unspecified when they are sitting in the
+    experiments section. This searches the whole document, bibliography
+    excluded, so a gap can be refuted by the part of the paper that answers it.
+    """
+    tex = doc.tex
+
+    def in_bibliography(offset: int) -> bool:
+        # Skipped, but only the span itself: the appendix usually sits after
+        # the reference list, and that is exactly where the hyperparameter
+        # tables that refute a gap tend to be.
+        return 0 <= doc.bib_start <= offset < doc.bib_end
+
+    hits: list[tuple[int, str]] = []
+    weight: dict[str, float] = {}
+    for term in terms:
+        found = [
+            m.start()
+            for m in re.finditer(re.escape(term), tex, re.I)
+            if not in_bibliography(m.start())
+        ]
+        # A term in every other paragraph locates nothing.
+        if not found or len(found) > _TOO_COMMON:
+            continue
+        # "activation" appears everywhere in a deep learning paper and
+        # "warmup" appears where the answer is. Ranking on the count of
+        # distinct terms treats those two alike, which is how a window
+        # holding four vague words outranked the one holding the number.
+        weight[term] = 1.0 / math.log(2 + len(found))
+        hits.extend((offset, term) for offset in found)
+
+    if not hits:
+        return []
+    hits.sort()
+
+    clusters: list[list[tuple[int, str]]] = [[hits[0]]]
+    for hit in hits[1:]:
+        if hit[0] - clusters[-1][-1][0] <= _CLUSTER:
+            clusters[-1].append(hit)
+        else:
+            clusters.append([hit])
+
+    # Distinct terms, each worth what it is worth: a window holding one rare
+    # term beats one holding three ubiquitous ones.
+    clusters.sort(
+        key=lambda c: (sum(weight[t] for t in {t for _, t in c}), len(c)),
+        reverse=True,
+    )
+
+    passages = []
+    for cluster in clusters[:_MAX_PASSAGES]:
+        start = max(0, cluster[0][0] - _WINDOW)
+        end = min(len(tex), cluster[-1][0] + _WINDOW)
+        passages.append((_section_at(doc, cluster[0][0]), tex[start:end]))
+
+    titled = _section_titled(doc, terms)
+    if titled is not None:
+        passages.insert(0, titled)
+    return passages
+
+
+def _section_titled(doc: Document, terms: list[str]) -> tuple[str, str] | None:
+    """The section whose heading answers the question, if a paper has one.
+
+    Papers routinely name a section after the very thing a gap asks about -
+    LoRA has "Which Weight Matrices in Transformer Should We Apply LoRA to?".
+    Offsets alone miss it when the answer sits a paragraph past the nearest
+    keyword, and widening the window to reach it would bloat every other
+    lookup. A heading is the cheaper and more structural signal.
+    """
+    wanted = set(terms)
+    best, score = None, 0
+    for section in doc.sections:
+        words = {w.lower() for w in re.findall(r"[A-Za-z][A-Za-z0-9\-]{2,}", section.title)}
+        overlap = len(words & wanted)
+        if overlap > score and overlap >= 2:
+            best, score = section, overlap
+    if best is None:
+        return None
+    return best.title, doc.content(best)[: _WINDOW * 4]
+
+
+def _section_at(doc: Document, offset: int) -> str:
+    title = ""
+    for section in doc.sections:
+        if section.start <= offset:
+            title = section.title
+        else:
+            break
+    return title or doc.meta.title
+
+
+def _refute(
+    doc: Document,
+    raw: RawUnknown,
+    config: LLMConfig,
+    report: Report,
+) -> tuple[str, Provenance] | None:
+    """Try to find, anywhere in the paper, the answer a gap says is absent.
+
+    A gap is the one claim the pipeline makes with nothing mechanical behind
+    it, and an audit of twenty found seven asserting the paper omits something
+    it states plainly. So the model proposes the gap and this disposes of it:
+    retrieve, ask one short question over the retrieved text only, and require
+    a quote that can be located in the source. Reasoning about absence over a
+    whole paper is the hardest possible framing; over four paragraphs it is an
+    ordinary reading question.
+    """
+    passages = _passages(doc, _gap_terms(raw.question, raw.applies_to))
+    if not passages:
+        return None
+
+    body = "\n\n".join(f"## {title}\n{text}" for title, text in passages)
+    prompt = (
+        f"Paper: {doc.meta.title}\n\n"
+        "Someone claims this paper never specifies the following. Passages "
+        "from the paper that mention the same terms are below.\n\n"
+        f"Question: {raw.question}\n\n"
+        "Answer `answered: true` if one of these passages states the answer "
+        "outright, and then copy the text that states it verbatim. That text "
+        "may be a sentence, a row of a table, or a line of an equation - "
+        "hyperparameters are usually given in tables, and a table row counts. "
+        "If the question asks about several things at once, answer true when "
+        "the passages state it for the main one.\n\n"
+        "A passage that merely discusses the topic, cites another paper for "
+        "it, or states something similar for a different part of the model is "
+        "NOT an answer - say false. Do not infer, and do not fill the answer "
+        "in from what papers usually do.\n\n"
+        f"{body}"
+    )
+    report.calls += 1
+    try:
+        check = complete_json(prompt, GapCheck, system=SYSTEM, config=config)
+    except LLMError as exc:
+        report.warnings.append(f"gap check: {exc}")
+        return None
+
+    if not check.answered or not check.answer:
+        return None
+
+    # The same rule every other claim lives under: a quote that cannot be
+    # found in the source does not count as evidence, so the gap stands.
+    provenance = _provenance(doc.tex, _section_at(doc, 0), check.quote)
+    if provenance is None:
+        report.warnings.append(
+            f"gap {raw.question[:50]!r}: answer offered without a locatable quote"
+        )
+        return None
+
+    span = locate(doc.tex, check.quote)
+    if span:
+        provenance = Provenance(
+            section=_section_at(doc, span[0]),
+            quote=(check.quote or "")[:600],
+            char_start=span[0],
+            char_end=span[1],
+        )
+    return check.answer, provenance
+
+
 def _unknowns(
     doc: Document,
     components: list[Component],
@@ -964,17 +1183,29 @@ def extract(
     if with_unknowns:
         try:
             found = _unknowns(doc, components, training, config, report)
-            unknowns = [
-                Unknown(
-                    question=u.question,
-                    why_it_matters=u.why_it_matters,
-                    severity=u.severity,
-                    conventional_default=u.conventional_default,
-                    applies_to=u.applies_to,
-                    searched=[s.title for s in (doc.methodology() or [])[:5]],
+            searched = [s.title for s in (doc.methodology() or [])[:5]]
+            for u in found.items:
+                # Each candidate is challenged against the whole paper before
+                # it is published as a gap. Saying a paper omits something it
+                # states plainly is the worst output this tool can produce.
+                refuted = _refute(doc, u, config, report)
+                if refuted is not None:
+                    answer, provenance = refuted
+                    report.refuted_gaps.append(
+                        f"{u.question[:70]} - answered in "
+                        f"{provenance.section!r}: {answer[:70]}"
+                    )
+                    continue
+                unknowns.append(
+                    Unknown(
+                        question=u.question,
+                        why_it_matters=u.why_it_matters,
+                        severity=u.severity,
+                        conventional_default=u.conventional_default,
+                        applies_to=u.applies_to,
+                        searched=searched,
+                    )
                 )
-                for u in found.items
-            ]
         except LLMError as exc:
             report.warnings.append(f"unknowns: {exc}")
 

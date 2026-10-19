@@ -29,6 +29,8 @@ _HEADING_RE = re.compile(
 _OPENING_RE = re.compile(
     r"introduction|background|related work|prior work|preliminar|motivation|notation"
 )
+_APPENDIX_RE = re.compile(r"\\appendix(?![A-Za-z])")
+
 _CLOSING_RE = re.compile(
     r"experiment|result|evaluation|ablation|discussion|conclusion|"
     r"related work|future work|acknowledg|appendix|reference|broader impact"
@@ -170,9 +172,12 @@ class Document:
             if title.startswith("appendix") or title.startswith("supplement"):
                 return self.sections[i:]
 
-        marker = self.tex.find("\\appendix")
-        if marker != -1:
-            return [s for s in self.sections if s.start > marker]
+        # `\appendix` and not `\appendixautorefname`, which sits in LoRA's
+        # preamble and made this return every section in the paper - the
+        # method was then sent twice in one prompt, 171k characters of it.
+        found = _APPENDIX_RE.search(self.tex)
+        if found:
+            return [s for s in self.sections if s.start > found.start()]
 
         if self.bib_end > 0:
             return [s for s in self.sections if s.start >= self.bib_end]

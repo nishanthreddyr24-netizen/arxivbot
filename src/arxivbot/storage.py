@@ -28,6 +28,7 @@ EPRINT = "eprint"
 PDF = "pdf"
 LLM = "llm"
 SPEC = "spec"
+META = "meta"
 
 
 class Store(ABC):
