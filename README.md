@@ -239,11 +239,48 @@ Known and worth stating plainly:
 
 ## Evaluation
 
-Planned, and the part that decides whether any of this is trustworthy. Papers
-with public official implementations provide ground truth: extract a spec, diff
-it against the real repo, and measure both how much is recovered and how
-accurately underspecification is flagged. Until those numbers exist, treat the
-output as a starting point for a human, not as a reproduction.
+Run, not planned. Thirty papers across seven areas, with the raw results in
+`eval/results.json` and the summary rendered at `/evidence` on the site.
+
+    python eval/run.py breadth      # one extraction per paper
+    python eval/run.py report       # CSV and summary from what exists
+    python eval/publish.py          # regenerate the site's evidence page
+
+The headline numbers: 28 of 30 extracted, 2 refused for shipping a PDF wrapped
+in LaTeX, and 76% of claims marked as stated had their sentence located
+character-for-character in the source.
+
+The number that matters most is one the corpus produced about itself. Twenty
+gap reports were audited by hand and seven named things the paper states
+plainly, so a third of the feature was wrong. Gaps are now challenged against
+the whole paper before being published. What is still missing is agreement
+across repeated runs: extraction is not reproducible, and nobody has measured
+by how much.
+
+Diffing a spec against the authors' official repository is still the ground
+truth this wants and does not have.
+
+## Deploying
+
+Two deployments, and the difference is who pays for inference.
+
+**Your own.** Set `GEMINI_API_KEY` and run it. Any paper on arXiv, no limits
+beyond your own quota. This is the intended way to use it.
+
+**A public demo.** Set `ARXIVBOT_DEMO=1` and the deployment can no longer spend
+your quota: extraction is limited to papers already in the store, and
+generation is served from the model cache or refused. This is enforced in the
+model layer by `LLMConfig.cache_only`, which raises `CacheMiss` rather than
+calling the provider, so it does not depend on every endpoint remembering to
+behave. Seed what the demo should hold before deploying:
+
+    python eval/build_specs.py 1706.03762 1512.03385 2010.11929 1609.02907
+    python eval/seed_demo.py
+
+Composing two papers costs nothing in either mode: the conflict ledger is
+computed from the stored specs, with no model involved.
+
+Also worth setting in public: `ALLOWED_ORIGINS`, which defaults to `*`.
 
 ## Contributing
 

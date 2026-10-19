@@ -70,6 +70,15 @@ class LLMError(RuntimeError):
     """A model call failed in a way retrying will not fix."""
 
 
+class CacheMiss(LLMError):
+    """Asked for something not in the cache while forbidden to go and get it.
+
+    Distinct from a provider failure: nothing went wrong, the answer simply
+    was not already paid for. A read-only deployment turns every uncached
+    request into one of these instead of spending someone else's quota.
+    """
+
+
 @dataclass(slots=True)
 class LLMConfig:
     """Which model to call and how."""
@@ -83,6 +92,9 @@ class LLMConfig:
     max_retries: int = 4
     timeout: float = 300.0
     use_cache: bool = True
+    cache_only: bool = False
+    """Serve from the cache or raise. Never call the provider."""
+
 
     @classmethod
     def from_env(cls, **overrides: Any) -> LLMConfig:
@@ -314,6 +326,12 @@ def complete(
     if config.use_cache and (hit := _cached(key)) is not None:
         return hit
 
+    if config.cache_only:
+        raise CacheMiss(
+            "this deployment answers only from its cache, and this request "
+            "is not in it"
+        )
+
     if config.provider == "gemini":
         text = _call_gemini(prompt, system, schema, config)
     elif config.provider in ("openai", "openai-compatible"):
@@ -382,6 +400,12 @@ def stream(
         for index in range(0, len(hit), 96):
             yield hit[index : index + 96]
         return
+
+    if config.cache_only:
+        raise CacheMiss(
+            "this deployment answers only from its cache, and this request "
+            "is not in it"
+        )
 
     if config.provider != "gemini":
         # One non-streaming call, handed over whole. Better than failing.

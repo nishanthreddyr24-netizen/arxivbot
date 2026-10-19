@@ -39,13 +39,20 @@ from arxivbot.extract import extract  # noqa: E402
 from arxivbot.ingest import build_document, load  # noqa: E402
 from arxivbot.ingest.fetch import FetchError, fetch_metadata  # noqa: E402
 from arxivbot.ingest.latex import UnpackError  # noqa: E402
-from arxivbot.llm import LLMConfig, LLMError  # noqa: E402
+from arxivbot.llm import CacheMiss, LLMConfig, LLMError  # noqa: E402
 from arxivbot.select import did_you_mean, select, suggest  # noqa: E402
 from arxivbot.synthesize import generate  # noqa: E402
 
 app = FastAPI(title="arxiv→code", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 # The frontend may be served from a different origin than the function.
+# A deployment that must not spend the operator's quota. Extraction is
+# limited to papers already in the store and generation to replies already
+# cached, so a public demo costs nothing and cannot be drained. Enforced in
+# the model layer by `cache_only`, not by asking endpoints to behave.
+DEMO = os.environ.get("ARXIVBOT_DEMO", "").lower() in ("1", "true", "yes", "on")
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("ALLOWED_ORIGINS", "*").split(","),
@@ -130,6 +137,7 @@ def health() -> dict:
         "model": config.identity if config.api_key else None,
         "key": bool(config.api_key),
         "store": os.environ.get("ARXIVBOT_STORE", "disk"),
+        "demo": DEMO,
     }
 
 
@@ -203,6 +211,12 @@ def start_extract(request: ExtractRequest) -> dict:
             detail="no API key configured on the server (set GEMINI_API_KEY)",
         )
 
+    if DEMO and request.refresh:
+        raise HTTPException(
+            status_code=403,
+            detail="this is a read-only demo; it cannot re-extract a paper",
+        )
+
     if not request.refresh and (hit := store.get(request.paper)):
         job_id = uuid.uuid4().hex
         JOBS[job_id] = Job(
@@ -212,6 +226,16 @@ def start_extract(request: ExtractRequest) -> dict:
             payload=_spec_payload(hit.spec, cached=True),
         )
         return {"job": job_id, "cached": True}
+
+    if DEMO:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "this is a read-only demo and holds a fixed set of papers, so "
+                "it will not read a new one. Run it yourself with your own "
+                "free API key to extract any paper on arXiv."
+            ),
+        )
 
     job_id = uuid.uuid4().hex
     JOBS[job_id] = Job()
@@ -251,9 +275,24 @@ def generate_code(id: str = Query(...), q: str = Query(...)) -> StreamingRespons
 
     deviations = deviation_check(hit.spec, q, selection.components)
 
+    # In demo mode the header is still derived from the spec - honest work
+    # the model had no part in - but the body must already be paid for.
+    config = LLMConfig.from_env()
+    config.cache_only = DEMO
+
     def body():
         try:
-            yield from generate(hit.spec, selection, deviations, q)
+            yield from generate(hit.spec, selection, deviations, q, config=config)
+        except CacheMiss:
+            yield (
+                "\n\n# This demo streams only skeletons it has generated before,\n"
+                "# and this request is not one of them. Everything above was\n"
+                "# derived from the spec rather than written by a model, so it\n"
+                "# still holds.\n"
+                "#\n"
+                "# Run it yourself with a free API key to generate any component\n"
+                "# of any paper on arXiv.\n"
+            )
         except LLMError as exc:
             # Mid-stream, the failure has to arrive as part of the document.
             yield f"\n\n# generation failed: {exc}\n"
