@@ -191,3 +191,52 @@ export async function generate(
   }
   return response.body.getReader();
 }
+
+// ------------------------------------------------------------- composing ---
+
+export type MergeResult = {
+  host: { id: string; title: string };
+  donor: { id: string; title: string };
+  donated: string;
+  replaced: string | null;
+  buildable: boolean;
+  components: { name: string; donated: boolean }[];
+  conflicts: {
+    axis: string;
+    host: string;
+    donor: string;
+    severity: string;
+    resolution: string;
+    detail: string;
+  }[];
+  notes: string[];
+  precedents: { id: string; title: string; overlap: number }[];
+  unknowns: { question: string; severity: string }[];
+};
+
+export const componentsOf = (id: string) =>
+  get<{
+    arxiv_id: string;
+    title: string;
+    components: {
+      name: string;
+      role: string;
+      modality: string;
+      ordering: string;
+      regime: string;
+      norm_position: string;
+    }[];
+  }>(`/api/components?id=${encodeURIComponent(id)}`);
+
+export const mergePapers = (
+  host: string,
+  donor: string,
+  component: string,
+  replaces?: string,
+) =>
+  get<MergeResult>(
+    `/api/merge?host=${encodeURIComponent(host)}&donor=${encodeURIComponent(
+      donor,
+    )}&component=${encodeURIComponent(component)}` +
+      (replaces ? `&replaces=${encodeURIComponent(replaces)}` : ""),
+  );

@@ -92,6 +92,12 @@ export function Footer() {
         <Link href="#how-it-works" className="-my-2 py-2 hover:text-red-ink">
           How it works
         </Link>
+        <Link href="/evidence" className="-my-2 py-2 hover:text-red-ink">
+          Evidence
+        </Link>
+        <Link href="/merge" className="-my-2 py-2 hover:text-red-ink">
+          Compose
+        </Link>
         <span className="sm:ml-auto">
           Not affiliated with arXiv or Cornell University.
         </span>

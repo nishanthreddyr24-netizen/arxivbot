@@ -1,0 +1,102 @@
+{
+ "generated": "2026-10-19",
+ "commit": "05efb82",
+ "corpus": {
+  "papers": 30,
+  "extracted": 30,
+  "refused": 0,
+  "components": 7.3,
+  "gaps": 3.0,
+  "quotes": 0.769
+ },
+ "areas": [
+  {
+   "area": "efficiency",
+   "papers": 5,
+   "components": 7.6,
+   "gaps": 3.2,
+   "quotes": 0.538
+  },
+  {
+   "area": "generative",
+   "papers": 5,
+   "components": 7.0,
+   "gaps": 2.2,
+   "quotes": 0.631
+  },
+  {
+   "area": "graph",
+   "papers": 3,
+   "components": 7.3,
+   "gaps": 2.0,
+   "quotes": 0.952
+  },
+  {
+   "area": "optimisation",
+   "papers": 3,
+   "components": 5.0,
+   "gaps": 1.3,
+   "quotes": 0.708
+  },
+  {
+   "area": "rl",
+   "papers": 5,
+   "components": 6.0,
+   "gaps": 3.8,
+   "quotes": 0.8
+  },
+  {
+   "area": "transformer",
+   "papers": 5,
+   "components": 8.6,
+   "gaps": 4.4,
+   "quotes": 0.885
+  },
+  {
+   "area": "vision",
+   "papers": 4,
+   "components": 9.0,
+   "gaps": 2.8,
+   "quotes": 0.89
+  }
+ ],
+ "refused": [],
+ "algorithm_blocks": {
+  "with": {
+   "papers": 11,
+   "components": 6.8,
+   "quotes": 0.827
+  },
+  "without": {
+   "papers": 19,
+   "components": 7.6,
+   "quotes": 0.735
+  }
+ },
+ "audit": {
+  "sampled": 20,
+  "true": 11,
+  "false": 7,
+  "partial": 2,
+  "note": "Twenty gaps, sampled at most two per paper, judged by hand against the LaTeX source. Seven asserted the paper omits something it states plainly."
+ },
+ "after": {
+  "retrieval_hit": [
+   6,
+   7
+  ],
+  "end_to_end": [
+   13,
+   16
+  ],
+  "real_kept": [
+   9,
+   9
+  ],
+  "false_dropped": [
+   4,
+   7
+  ],
+  "note": "A candidate gap is now challenged against the whole paper and withdrawn if the answer is found. Errors fall the safe way: a gap wrongly kept changes nothing, a gap wrongly dropped would hide a real hole."
+ }
+}

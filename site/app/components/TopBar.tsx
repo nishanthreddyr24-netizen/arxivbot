@@ -6,6 +6,9 @@ import Link from "next/link";
  */
 const LINKS = [
   { label: "How it works", href: "#how-it-works", onPhone: false },
+  // Shown on phones too: the measurements are the argument, not a footnote.
+  { label: "Evidence", href: "/evidence", onPhone: true },
+  { label: "Compose", href: "/merge", onPhone: true },
   {
     label: "GitHub",
     href: "https://github.com/nishanthreddyr24-netizen/arxivbot",

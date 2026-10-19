@@ -32,6 +32,7 @@ export function CodePane({
   const scroller = useRef<HTMLPreElement>(null);
   const [cursor, setCursor] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
 
   // Follow the stream, but only while it is running: once it stops the
   // reader is in charge of where they are looking.
@@ -56,6 +57,18 @@ export function CodePane({
       setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
+    }
+  }
+
+  /** The URL already carries the paper and the request; this hands it over
+   *  without making anyone go and select the address bar. */
+  async function share() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShared(true);
+      setTimeout(() => setShared(false), 1400);
+    } catch {
+      setShared(false);
     }
   }
 
@@ -144,14 +157,25 @@ export function CodePane({
           </span>
         ) : null}
 
-        <button
-          type="button"
-          onClick={copy}
-          disabled={streaming}
-          className="ml-auto shrink-0 py-1 hover:text-red-ink disabled:opacity-40"
-        >
-          {copied ? "copied" : "copy"}
-        </button>
+        <span className="ml-auto flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={share}
+            disabled={streaming}
+            title="Copy a link that reopens this paper and this request"
+            className="py-1 hover:text-red-ink disabled:opacity-40"
+          >
+            {shared ? "link copied" : "share"}
+          </button>
+          <button
+            type="button"
+            onClick={copy}
+            disabled={streaming}
+            className="py-1 hover:text-red-ink disabled:opacity-40"
+          >
+            {copied ? "copied" : "copy"}
+          </button>
+        </span>
       </div>
     </>
   );

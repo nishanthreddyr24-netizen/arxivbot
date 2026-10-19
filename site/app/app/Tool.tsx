@@ -107,6 +107,16 @@ export function Tool({ paper, query }: { paper: string; query: string }) {
     async (text: string) => {
       if (!text.trim() || !result) return;
       setRequest(text);
+      // The address bar is the share button people already know about, and
+      // it was still pointing at whatever was asked for on page load. Both
+      // halves of the state live in the URL, so the link reproduces exactly
+      // what is on screen - the spec is cached server-side by arXiv id.
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.set("paper", result.spec.arxiv_id);
+        url.searchParams.set("q", text);
+        window.history.replaceState(null, "", url);
+      }
       setStreaming(true);
       setSuggestions(null);
       setCode("");

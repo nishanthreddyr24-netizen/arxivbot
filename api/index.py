@@ -293,3 +293,109 @@ def ask(id: str = Query(...), q: str = Query(...)) -> dict:
             for u in selection.unknowns
         ],
     }
+
+
+@app.get("/api/components")
+def components_of(id: str = Query(...)) -> dict:
+    """The component names of an already-extracted paper, for the merge form.
+
+    A merge needs you to name a component of the donor paper, and guessing
+    what a given paper calls its parts is the hard bit. This lets the page
+    offer them instead of asking.
+    """
+    hit = store.get(id)
+    if hit is None:
+        raise HTTPException(status_code=404, detail="extract this paper first")
+    return {
+        "arxiv_id": hit.spec.arxiv_id,
+        "title": hit.spec.title,
+        "components": [
+            {
+                "name": c.name,
+                "role": c.role,
+                "modality": c.assumptions.modality.value,
+                "ordering": c.assumptions.ordering.value,
+                "regime": c.assumptions.regime.value,
+                "norm_position": c.assumptions.norm_position.value,
+            }
+            for c in hit.spec.components
+        ],
+    }
+
+
+@app.get("/api/merge")
+def merge_papers(
+    host: str = Query(...),
+    donor: str = Query(...),
+    component: str = Query(...),
+    replaces: str | None = Query(None),
+) -> dict:
+    """Put a donor paper's component into a host paper's architecture.
+
+    Both specs must already exist. The conflicts come out of code comparing
+    the two sets of assumptions, not out of a model, so this endpoint costs
+    nothing and returns the same answer every time.
+    """
+    from arxivbot.merge import merge as compose
+
+    specs = {}
+    for arxiv_id in (host, donor):
+        hit = store.get(arxiv_id)
+        if hit is None:
+            raise HTTPException(
+                status_code=404, detail=f"extract {arxiv_id} first"
+            )
+        specs[arxiv_id] = hit.spec
+
+    known = []
+    try:
+        from arxivbot.storage import SPEC
+        from arxivbot.storage import store as backend
+        from arxivbot.spec import ImplementationSpec
+
+        for name in backend().keys(SPEC):
+            if name in (host, donor):
+                continue
+            raw = backend().get_text(SPEC, name)
+            if raw:
+                known.append(ImplementationSpec.model_validate_json(raw))
+    except Exception:  # noqa: BLE001 - precedents are a nicety, not the answer
+        known = []
+
+    try:
+        hybrid = compose(
+            specs[host], specs[donor], component, replaces=replaces, known=known
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "host": {"id": hybrid.host_id, "title": hybrid.host_title},
+        "donor": {"id": hybrid.donor_id, "title": hybrid.donor_title},
+        "donated": hybrid.donated,
+        "replaced": hybrid.replaced,
+        "buildable": hybrid.buildable,
+        "components": [
+            {"name": c.name, "donated": c.name == hybrid.donated}
+            for c in hybrid.components
+        ],
+        "conflicts": [
+            {
+                "axis": c.axis,
+                "host": c.host,
+                "donor": c.donor,
+                "severity": c.severity.value,
+                "resolution": c.resolution.value,
+                "detail": c.detail,
+            }
+            for c in hybrid.conflicts
+        ],
+        "notes": hybrid.notes,
+        "precedents": [
+            {"id": i, "title": t, "overlap": o} for i, t, o in hybrid.precedents
+        ],
+        "unknowns": [
+            {"question": u.question, "severity": u.severity.value}
+            for u in hybrid.unknowns
+        ],
+    }

@@ -1,0 +1,1575 @@
+{
+ "breadth": {
+  "1706.03762": {
+   "id": "1706.03762",
+   "area": "transformer",
+   "short": "Transformer",
+   "title": "Attention Is All You Need",
+   "tex_chars": 53878,
+   "sections": 30,
+   "units": 9,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 1.8,
+   "calls": 22,
+   "components": [
+    "encoder",
+    "multi-head attention",
+    "position-wise feed-forward networks",
+    "residual connection",
+    "layer normalization",
+    "learned embeddings",
+    "decoder",
+    "sub-layer",
+    "positional encodings"
+   ],
+   "n_components": 9,
+   "gaps": [
+    {
+     "question": "What is the weight initialization scheme used for the model parameters?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the exact tokenisation vocabulary and method (e.g., specific byte-pair encoding merges and vocabulary size) used for the WMT datasets?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What loss function (objective) is used during training?",
+     "severity": "blocking"
+    },
+    {
+     "question": "How are biases initialized?",
+     "severity": "minor"
+    }
+   ],
+   "n_gaps": 4,
+   "stated": 21,
+   "unverified": 1,
+   "quote_accuracy": 0.9615384615384616,
+   "recovered": [],
+   "rejected": [
+    "masking",
+    "softmax function",
+    "matrix multiplication",
+    "scaling factor",
+    "linear projections",
+    "Concat",
+    "WO",
+    "linear transformations",
+    "ReLU activation"
+   ],
+   "warnings": []
+  },
+  "1810.04805": {
+   "id": "1810.04805",
+   "area": "transformer",
+   "short": "BERT",
+   "title": "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+   "tex_chars": 65199,
+   "sections": 44,
+   "units": 5,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 35.6,
+   "calls": 15,
+   "components": [
+    "Transformer encoder",
+    "classification layer",
+    "WordPiece model",
+    "token-level classifier",
+    "BiLSTM",
+    "pre-trained Transformer"
+   ],
+   "n_components": 6,
+   "gaps": [
+    {
+     "question": "What is the exact vocabulary size of the WordPiece model?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What are the exact tensor shapes and projection dimensions for the classification layer and token-level classifier?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the initialization scheme and distribution used for model weights?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the precise placement of layer normalization (pre-norm vs. post-norm) and residual connections within the Transformer encoder blocks?",
+     "severity": "blocking"
+    }
+   ],
+   "n_gaps": 4,
+   "stated": 31,
+   "unverified": 3,
+   "quote_accuracy": 0.9117647058823529,
+   "recovered": [],
+   "rejected": [
+    "word embedding parameters",
+    "sentence or document encoders",
+    "OpenAI GPT",
+    "BERT models"
+   ],
+   "warnings": []
+  },
+  "1907.11692": {
+   "id": "1907.11692",
+   "area": "transformer",
+   "short": "RoBERTa",
+   "title": "RoBERTa: A Robustly Optimized BERT Pretraining Approach",
+   "tex_chars": 48089,
+   "sections": 37,
+   "units": 9,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 83.9,
+   "calls": 23,
+   "components": [
+    "transformer architecture",
+    "MLM objective",
+    "Adam",
+    "NSP loss",
+    "doc-sentences",
+    "full-sentences",
+    "margin ranking loss",
+    "fully-connected layer",
+    "span predictor",
+    "classifier"
+   ],
+   "n_components": 10,
+   "gaps": [
+    {
+     "question": "What is the peak learning rate and number of warmup steps used for each setting?",
+     "severity": "significant"
+    },
+    {
+     "question": "What is the exact hyperparameter configuration for the wider hyperparameter space used in GLUE test ensembling?",
+     "severity": "minor"
+    },
+    {
+     "question": "What are the exact layer-wise learning rates or specific hyperparameter values used in the Appendix tables for finetuning on GLUE, SQuAD, and RACE?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 3,
+   "stated": 11,
+   "unverified": 1,
+   "quote_accuracy": 0.9166666666666666,
+   "recovered": [
+    "span predictor",
+    "classifier"
+   ],
+   "rejected": [
+    " $[\\mathit{MASK}]$ ",
+    "fairseq",
+    "segment-pair",
+    "sentence-pair",
+    "ourmodel",
+    "bertlarge",
+    "xlnetlarge",
+    "QNLI pairwise ranking formulation",
+    "QNLI pure classification approach",
+    "reformatted WNLI data from SuperGLUE",
+    "spaCy",
+    "RoBERTa",
+    "XLNet-large"
+   ],
+   "warnings": [
+    "margin ranking loss: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "fully-connected layer: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "span predictor: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "2310.06825": {
+   "id": "2310.06825",
+   "area": "transformer",
+   "short": "Mistral 7B",
+   "title": "Mistral 7B",
+   "tex_chars": 25276,
+   "sections": 9,
+   "units": 8,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 5.8,
+   "calls": 17,
+   "components": [
+    "grouped-query attention",
+    "Sliding Window Attention",
+    "Rolling Buffer Cache",
+    "FlashAttention",
+    "xFormers",
+    "pre-fill and chunking"
+   ],
+   "n_components": 6,
+   "gaps": [
+    {
+     "question": "What is the exact tokenizer used for Mistral 7B?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the vocabulary size?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What activation function is used in the feed-forward layers?",
+     "severity": "blocking"
+    },
+    {
+     "question": "Where are the normalization layers placed (pre-normalization vs post-normalization) and what type of normalization is used?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the exact weight initialization scheme?",
+     "severity": "significant"
+    },
+    {
+     "question": "What learning rate schedule, optimizer parameters (e.g., AdamW betas, weight decay, gradient clipping), and batch size were used for pre-training?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the exact positional embedding method used (e.g., RoPE parameters like base frequency)?",
+     "severity": "blocking"
+    }
+   ],
+   "n_gaps": 7,
+   "stated": 11,
+   "unverified": 5,
+   "quote_accuracy": 0.6875,
+   "recovered": [],
+   "rejected": [
+    "transformer architecture",
+    "instruction datasets",
+    "Mistral 7B",
+    "Mistral-Instruct",
+    "system prompt",
+    "mistralchat",
+    "self-reflection prompt"
+   ],
+   "warnings": []
+  },
+  "1910.10683": {
+   "id": "1910.10683",
+   "area": "transformer",
+   "short": "T5",
+   "title": "Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer",
+   "tex_chars": 215947,
+   "sections": 59,
+   "units": 9,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 74.0,
+   "calls": 25,
+   "components": [
+    "self-attention",
+    "encoder",
+    "blocks",
+    "feed-forward network",
+    "Layer normalization",
+    "Dropout",
+    "decoder",
+    "standard attention mechanism",
+    "dense layer",
+    "relative position embeddings",
+    "basic language modeling objective",
+    "baseline denoising objective"
+   ],
+   "n_components": 12,
+   "gaps": [
+    {
+     "question": "What is the weight initialization scheme used for the model parameters?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the tokenisation algorithm and exact vocabulary size/file used?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What optimizer and learning rate schedule are used during pre-training?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the exact maximum sequence length used during pre-training and fine-tuning?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 4,
+   "stated": 18,
+   "unverified": 1,
+   "quote_accuracy": 0.9473684210526315,
+   "recovered": [],
+   "rejected": [
+    "Transformer",
+    "residual skip connection",
+    "softmax output",
+    "heads",
+    "ReLU nonlinearity",
+    "language model",
+    "prefix LM",
+    "Enc-dec, shared",
+    "Enc-dec, 6 layers",
+    "input embedding matrix",
+    "output classification matrix"
+   ],
+   "warnings": [
+    "encoder: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "2205.14135": {
+   "id": "2205.14135",
+   "area": "efficiency",
+   "short": "FlashAttention",
+   "title": "FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness",
+   "tex_chars": 143720,
+   "sections": 58,
+   "units": 15,
+   "algorithm_blocks": 14,
+   "ok": true,
+   "seconds": 3.2,
+   "calls": 20,
+   "components": [
+    "FlashAttention"
+   ],
+   "n_components": 1,
+   "gaps": [
+    {
+     "question": "What is the exact size $M$ of the on-chip SRAM used to determine block sizes $B_c$ and $B_r$?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the exact precision (e.g., FP16, BF16, TF32, FP32) used for storing matrices $\\vQ, \\vK, \\vV$ and performing the inner block computations?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 2,
+   "stated": 0,
+   "unverified": 0,
+   "quote_accuracy": null,
+   "recovered": [],
+   "rejected": [
+    "matrix S",
+    "softmax",
+    "attention output",
+    "masking",
+    "dropout",
+    "BERT-large",
+    "GPT-2",
+    "Transformer",
+    "Linformer",
+    "Linear Attention",
+    "Performer",
+    "Local Attention",
+    "Reformer",
+    "Smyrf",
+    "RoBERTa model",
+    "positional embeddings",
+    "dv",
+    "D",
+    "dq",
+    "dk",
+    "mask",
+    "Standard Attention Backward Pass"
+   ],
+   "warnings": []
+  },
+  "2106.09685": {
+   "id": "2106.09685",
+   "area": "efficiency",
+   "short": "LoRA",
+   "title": "LoRA: Low-Rank Adaptation of Large Language Models",
+   "tex_chars": 106878,
+   "sections": 40,
+   "units": 3,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 53.5,
+   "calls": 18,
+   "components": [
+    "dense layers",
+    "pre-trained weight matrix",
+    "low-rank decomposition",
+    "B",
+    "self-attention module",
+    "MLP module",
+    "W",
+    "W_k",
+    "W_v",
+    "W_o",
+    "LoRA modules"
+   ],
+   "n_components": 11,
+   "gaps": [
+    {
+     "question": "What is the exact scaling factor applied to the LoRA update when alpha is used, and how does the initialization scale with alpha?",
+     "severity": "significant"
+    },
+    {
+     "question": "Which specific layers or modules receive LoRA in experiments where more than query and value projections are adapted?",
+     "severity": "significant"
+    },
+    {
+     "question": "Are biases and LayerNorm parameters trained alongside LoRA matrices or kept frozen?",
+     "severity": "minor"
+    },
+    {
+     "question": "What is the exact learning rate schedule used for RoBERTa and DeBERTa experiments?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 4,
+   "stated": 6,
+   "unverified": 20,
+   "quote_accuracy": 0.23076923076923078,
+   "recovered": [],
+   "rejected": [],
+   "warnings": [
+    "consolidation: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "missing-components pass: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "2104.09864": {
+   "id": "2104.09864",
+   "area": "efficiency",
+   "short": "RoFormer",
+   "title": "RoFormer: Enhanced Transformer with Rotary Position Embedding",
+   "tex_chars": 45984,
+   "sections": 40,
+   "units": 15,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 100.2,
+   "calls": 25,
+   "components": [
+    "self-attention layer",
+    "\\R^d_{\\Theta,m}",
+    "Adam optimizer",
+    "Label smoothing",
+    "RoPE",
+    "AdamW"
+   ],
+   "n_components": 6,
+   "gaps": [
+    {
+     "question": "What is the weight initialization scheme used for the models?",
+     "severity": "significant"
+    },
+    {
+     "question": "What are the specific architectural dimensions (number of layers, hidden size, number of attention heads, feed-forward network hidden dimension) for the English-to-German translation model?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What normalization placement (e.g., pre-layer normalization vs. post-layer normalization) is used in the Transformer blocks?",
+     "severity": "significant"
+    },
+    {
+     "question": "What is the exact weight decay value used with the AdamW optimizer during pre-training?",
+     "severity": "minor"
+    },
+    {
+     "question": "What learning rate schedule (e.g., warmup steps, decay type) is used for the AdamW pre-training optimizer?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 5,
+   "stated": 3,
+   "unverified": 3,
+   "quote_accuracy": 0.5,
+   "recovered": [],
+   "rejected": [
+    "query",
+    "key",
+    "g",
+    "encoding mechanism",
+    "q",
+    "k",
+    "W_{{q, k}}",
+    "q_m",
+    "k_n",
+    "R_q",
+    "Theta_q",
+    "R_k",
+    "Theta_k",
+    "phi",
+    "x",
+    "BERT",
+    "RoFormer",
+    "PerFormer",
+    "WoBERT"
+   ],
+   "warnings": [
+    "unit 'Long-term decay:': giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "unit 'RoPE with linear attention:': giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "RoPE: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "AdamW: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "training: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "1909.11942": {
+   "id": "1909.11942",
+   "area": "efficiency",
+   "short": "ALBERT",
+   "title": "ALBERT: A Lite BERT for Self-supervised Learning of Language Representations",
+   "tex_chars": 70464,
+   "sections": 41,
+   "units": 6,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 59.6,
+   "calls": 18,
+   "components": [
+    "transformer encoder",
+    "embedding parameters",
+    "feed-forward network",
+    "attention",
+    "masked language modeling (MLM) loss",
+    "next-sentence prediction (NSP)",
+    "sentence-order prediction (SOP) loss",
+    "GELU nonlinearities"
+   ],
+   "n_components": 8,
+   "gaps": [
+    {
+     "question": "What is the exact tokenisation algorithm and vocabulary set used, beyond stating that the vocabulary size V is 30,000?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What are the exact weight initialisation distributions and scale factors for the layers?",
+     "severity": "significant"
+    },
+    {
+     "question": "What is the exact placement and formulation of layer normalisation and residual connections within the transformer blocks (e.g., pre-norm vs. post-norm)?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the exact masking strategy used for the masked language modeling (MLM) objective (e.g., masking probabilities, n-gram masking, whole word masking)?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 4,
+   "stated": 6,
+   "unverified": 1,
+   "quote_accuracy": 0.8571428571428571,
+   "recovered": [
+    "GELU nonlinearities"
+   ],
+   "rejected": [
+    "ALBERT-large"
+   ],
+   "warnings": [
+    "GELU nonlinearities: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "training: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "2004.05150": {
+   "id": "2004.05150",
+   "area": "efficiency",
+   "short": "Longformer",
+   "title": "Longformer: The Long-Document Transformer",
+   "tex_chars": 70189,
+   "sections": 44,
+   "units": 14,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 78.6,
+   "calls": 30,
+   "components": [
+    "dilated sliding window attention",
+    "banded matrix multiplication",
+    "loop",
+    "cuda",
+    "linear layer",
+    "softmax",
+    "cross entropy loss",
+    "Adam optimizer",
+    "global attention",
+    "one layer",
+    "feedforward layers",
+    "question type classification head"
+   ],
+   "n_components": 12,
+   "gaps": [
+    {
+     "question": "What is the exact formula or implementation details for the version of relative position embedding that is compatible with the dilated sliding window attention in the character-level language modeling experiments?",
+     "severity": "blocking"
+    }
+   ],
+   "n_gaps": 1,
+   "stated": 13,
+   "unverified": 10,
+   "quote_accuracy": 0.5652173913043478,
+   "recovered": [],
+   "rejected": [
+    "task-specific model",
+    "two-stage model",
+    "Transformer models",
+    "Longformer",
+    "ETC",
+    "GMAT",
+    "BigBird",
+    "chunks",
+    "attention patterns",
+    "RoBERTa",
+    "input",
+    "BERT's QA model",
+    "coarse-to-fine clustering stage",
+    "[CLS] token"
+   ],
+   "warnings": [
+    "missing-components pass: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "dilated sliding window attention: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "2006.11239": {
+   "id": "2006.11239",
+   "area": "generative",
+   "short": "DDPM",
+   "title": "Denoising Diffusion Probabilistic Models",
+   "tex_chars": 60919,
+   "sections": 28,
+   "units": 4,
+   "algorithm_blocks": 8,
+   "ok": true,
+   "seconds": 62.7,
+   "calls": 15,
+   "components": [
+    "approximate posterior $q$",
+    "p_\theta(\bx_{t-1}|\bx_t)",
+    "\\bSigma_\\theta(\\bx_t, t)",
+    "\\bmu_\\theta(\\bx_t, t)",
+    "\\bepsilon_\\theta(\\bx_t, t)",
+    "neural network reverse process",
+    "independent discrete decoder"
+   ],
+   "n_components": 7,
+   "gaps": [
+    {
+     "question": "What are the exact channel counts, filter multipliers, and layer configurations per resolution level in the U-Net backbone?",
+     "severity": "significant"
+    },
+    {
+     "question": "What activation function is used throughout the U-Net residual blocks?",
+     "severity": "significant"
+    },
+    {
+     "question": "What is the exact number of groups used in group normalization across different resolution blocks?",
+     "severity": "significant"
+    },
+    {
+     "question": "What exact weight initialization scheme is used for the convolutional and dense layers?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 4,
+   "stated": 12,
+   "unverified": 2,
+   "quote_accuracy": 0.8571428571428571,
+   "recovered": [],
+   "rejected": [],
+   "warnings": [
+    "unit 'Simplified training objective': giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "consolidation: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "missing-components pass: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "2010.02502": {
+   "id": "2010.02502",
+   "area": "generative",
+   "short": "DDIM",
+   "title": "Denoising Diffusion Implicit Models",
+   "tex_chars": 82040,
+   "sections": 30,
+   "units": 2,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 41.6,
+   "calls": 9,
+   "components": [
+    "model",
+    "U-Net",
+    "Wide ResNet"
+   ],
+   "n_components": 3,
+   "gaps": [
+    {
+     "question": "What is the exact constant value $c$ used in the linear and quadratic sub-sequence selection procedures for each dataset when $\tau$ has a specific dimension $\text{dim}(\tau)$?",
+     "severity": "significant"
+    },
+    {
+     "question": "What are the exact training hyperparameters (such as learning rate, batch size, optimizer, number of training iterations or epochs) used when training the model on CelebA?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 2,
+   "stated": 0,
+   "unverified": 1,
+   "quote_accuracy": 0.0,
+   "recovered": [],
+   "rejected": [],
+   "warnings": [
+    "training: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "2112.10752": {
+   "id": "2112.10752",
+   "area": "generative",
+   "short": "Latent Diffusion",
+   "title": "High-Resolution Image Synthesis with Latent Diffusion Models",
+   "tex_chars": 210132,
+   "sections": 47,
+   "units": 15,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 80.8,
+   "calls": 31,
+   "components": [
+    "autoencoder",
+    "encoder",
+    "decoder",
+    "vector quantization layer",
+    "perceptual compression models",
+    "UNet",
+    "2D convolutional layers",
+    "cross-attention layer",
+    "forward diffusion process $q$",
+    "generative models $p(x_0)$",
+    "prior $p(x_T)$",
+    "estimate $x_\theta(x_t, t)$"
+   ],
+   "n_components": 12,
+   "gaps": [
+    {
+     "question": "What are the exact parameter values and settings for the adapted BSR-degradation process used in LDM-BSR?",
+     "severity": "significant"
+    },
+    {
+     "question": "What are the exact architectural specifications and hyperparameters for the patch-based discriminator $\\disc$ used in training the autoencoder models?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 2,
+   "stated": 1,
+   "unverified": 1,
+   "quote_accuracy": 0.5,
+   "recovered": [
+    "patch-based discriminator $\\disc$"
+   ],
+   "rejected": [],
+   "warnings": [
+    "consolidation: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "1406.2661": {
+   "id": "1406.2661",
+   "area": "generative",
+   "short": "GAN",
+   "title": "Generative Adversarial Networks",
+   "tex_chars": 31712,
+   "sections": 10,
+   "units": 1,
+   "algorithm_blocks": 2,
+   "ok": true,
+   "seconds": 38.5,
+   "calls": 8,
+   "components": [
+    "discriminator",
+    "generator",
+    "multilayer perceptron"
+   ],
+   "n_components": 3,
+   "gaps": [
+    {
+     "question": "What learning rate and momentum parameters are used for the gradient descent optimization of the generator and discriminator?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What weight initialization strategy is used for the layers of the multilayer perceptrons in the generator and discriminator?",
+     "severity": "significant"
+    },
+    {
+     "question": "What activation functions are used in the hidden layers and output layers of the generator and discriminator networks?",
+     "severity": "blocking"
+    }
+   ],
+   "n_gaps": 3,
+   "stated": 0,
+   "unverified": 0,
+   "quote_accuracy": 1.0,
+   "recovered": [],
+   "rejected": [],
+   "warnings": [
+    "missing-components pass: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "discriminator: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "1312.6114": {
+   "id": "1312.6114",
+   "area": "generative",
+   "short": "VAE",
+   "title": "Auto-Encoding Variational Bayes",
+   "tex_chars": 51464,
+   "sections": 23,
+   "units": 4,
+   "algorithm_blocks": 4,
+   "ok": true,
+   "seconds": 66.1,
+   "calls": 18,
+   "components": [
+    "recognition model",
+    "probabilistic encoder",
+    "variational lower bound",
+    "Monte Carlo gradient estimator",
+    "differentiable transformation",
+    "Stochastic Gradient Variational Bayes estimator",
+    "second version of the SGVB estimator",
+    "estimator of the marginal likelihood lower bound of the full dataset",
+    "Auto-Encoding VB algorithm",
+    "probabilistic decoder"
+   ],
+   "n_components": 10,
+   "gaps": [],
+   "n_gaps": 0,
+   "stated": 8,
+   "unverified": 2,
+   "quote_accuracy": 0.8,
+   "recovered": [
+    "probabilistic decoder"
+   ],
+   "rejected": [
+    "prior distribution",
+    "conditional distribution",
+    "approximate posterior",
+    "auxiliary variable"
+   ],
+   "warnings": [
+    "second version of the SGVB estimator: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "2010.11929": {
+   "id": "2010.11929",
+   "area": "vision",
+   "short": "ViT",
+   "title": "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale",
+   "tex_chars": 82059,
+   "sections": 34,
+   "units": 3,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 52.2,
+   "calls": 14,
+   "components": [
+    "MLP",
+    "Self-attention",
+    "Position embeddings",
+    "CNN feature map",
+    "Prediction head",
+    "Feedforward layer",
+    "Layernorm"
+   ],
+   "n_components": 7,
+   "gaps": [
+    {
+     "question": "What is the weight initialization scheme used for the linear projections and dense layers?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What are the exact bias terms used in linear layers and convolutions?",
+     "severity": "significant"
+    },
+    {
+     "question": "What is the exact epsilon value added for numerical stability in LayerNorm?",
+     "severity": "minor"
+    },
+    {
+     "question": "What is the exact architecture and layer configuration of the CNN used for feature maps in hybrid models?",
+     "severity": "blocking"
+    }
+   ],
+   "n_gaps": 4,
+   "stated": 5,
+   "unverified": 0,
+   "quote_accuracy": 1.0,
+   "recovered": [
+    "Layernorm"
+   ],
+   "rejected": [
+    "patch embedding projection E",
+    "classification input embedding"
+   ],
+   "warnings": [
+    "Layernorm: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "training: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "1512.03385": {
+   "id": "1512.03385",
+   "area": "vision",
+   "short": "ResNet",
+   "title": "Deep Residual Learning for Image Recognition",
+   "tex_chars": 66184,
+   "sections": 14,
+   "units": 2,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 56.8,
+   "calls": 18,
+   "components": [
+    "convolutional layers",
+    "global average pooling layer",
+    "fully-connected layer",
+    "shortcut connections",
+    "identity shortcuts",
+    "projection shortcut",
+    "scale augmentation",
+    "224x224 crop",
+    "color augmentation",
+    "batch normalization",
+    "SGD",
+    "10-crop testing"
+   ],
+   "n_components": 12,
+   "gaps": [],
+   "n_gaps": 0,
+   "stated": 5,
+   "unverified": 3,
+   "quote_accuracy": 0.625,
+   "recovered": [
+    "per-pixel mean subtraction"
+   ],
+   "rejected": [
+    "per-pixel mean",
+    "weight decay",
+    "momentum"
+   ],
+   "warnings": [
+    "10-crop testing: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "training: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "1505.04597": {
+   "id": "1505.04597",
+   "area": "vision",
+   "short": "U-Net",
+   "title": "U-Net: Convolutional Networks for Biomedical Image Segmentation",
+   "tex_chars": 21298,
+   "sections": 7,
+   "units": 1,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 26.0,
+   "calls": 13,
+   "components": [
+    "up-convolution",
+    "contracting path",
+    "expansive path",
+    "3x3 convolution",
+    "ReLU",
+    "2x2 max pooling operation",
+    "concatenation",
+    "1x1 convolution"
+   ],
+   "n_components": 8,
+   "gaps": [
+    {
+     "question": "What is the exact padding or border treatment used for the convolutions, other than noting that the 3x3 convolutions are unpadded?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the mean of the Gaussian distribution used for weight initialization?",
+     "severity": "minor"
+    },
+    {
+     "question": "What is the exact learning rate and its schedule or decay rate during stochastic gradient descent training?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What are the exact input image dimensions and the corresponding input tile sizes used for training and testing?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 4,
+   "stated": 14,
+   "unverified": 1,
+   "quote_accuracy": 0.9333333333333333,
+   "recovered": [
+    "contracting path",
+    "expansive path",
+    "3x3 convolution",
+    "ReLU",
+    "2x2 max pooling operation",
+    "concatenation",
+    "1x1 convolution"
+   ],
+   "rejected": [
+    "3x3 convolution",
+    "rectified linear unit (ReLU)",
+    "2x2 max pooling operation",
+    "contracting path",
+    "concatenation",
+    "expansive path"
+   ],
+   "warnings": []
+  },
+  "2003.08934": {
+   "id": "2003.08934",
+   "area": "vision",
+   "short": "NeRF",
+   "title": "NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis",
+   "tex_chars": 75503,
+   "sections": 34,
+   "units": 7,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 94.0,
+   "calls": 20,
+   "components": [
+    "neural continuous volume representation",
+    "coarse network",
+    "fine network",
+    "Adam optimizer",
+    "fully-connected layer",
+    "ReLU",
+    "skip connection",
+    "additional layer",
+    "final layer"
+   ],
+   "n_components": 9,
+   "gaps": [
+    {
+     "question": "What are the initialization schemes for the weights of the fully-connected layers?",
+     "severity": "significant"
+    },
+    {
+     "question": "What are the exact frequencies and maximum frequency powers used in the positional encoding functions $\\gamma(\\mathbf{x})$ and $\\gamma(\\mathbf{d})$?",
+     "severity": "blocking"
+    },
+    {
+     "question": "How are the stratified random samples generated within each bin during training versus deterministic samples during testing?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 3,
+   "stated": 8,
+   "unverified": 0,
+   "quote_accuracy": 1.0,
+   "recovered": [],
+   "rejected": [
+    "random Gaussian noise",
+    "NV code"
+   ],
+   "warnings": [
+    "unit 'Volume Bounds': giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "training: RawTraining validation failed: 1 validation error for RawTraining\n  Invalid JSON: EOF while parsing a string at line 4 column 33768 [type=json_invalid, input_value='{\\n  \"objective\": \"Our l...\\\\\\epsilon=10^{-7}$)$^{', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid"
+   ]
+  },
+  "1707.06347": {
+   "id": "1707.06347",
+   "area": "rl",
+   "short": "PPO",
+   "title": "Proximal Policy Optimization Algorithms",
+   "tex_chars": 220,
+   "sections": 0,
+   "units": 0,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 7.4,
+   "calls": 1,
+   "components": [],
+   "n_components": 0,
+   "gaps": [
+    {
+     "question": "What is the exact network architecture (number of layers, hidden units, activation functions) used for the continuous action space tasks (MuJoCo)?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What are the specific neural network architectures used for the Atari 2600 experiments?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the initialization scheme and scale used for the weights of the neural network layers?",
+     "severity": "significant"
+    },
+    {
+     "question": "How are the observations normalized or preprocessed before being fed into the neural networks (e.g., clipping, scaling, running mean/variance)?",
+     "severity": "significant"
+    },
+    {
+     "question": "What is the exact discount factor ($\\gamma$) and Generalized Advantage Estimation parameter ($\\lambda$) used for each specific environment or task domain?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 5,
+   "stated": 0,
+   "unverified": 0,
+   "quote_accuracy": null,
+   "recovered": [],
+   "rejected": [],
+   "warnings": []
+  },
+  "1312.5602": {
+   "id": "1312.5602",
+   "area": "rl",
+   "short": "DQN",
+   "title": "Playing Atari with Deep Reinforcement Learning",
+   "tex_chars": 37344,
+   "sections": 10,
+   "units": 1,
+   "algorithm_blocks": 2,
+   "ok": true,
+   "seconds": 20.1,
+   "calls": 10,
+   "components": [
+    "preprocessing step",
+    "first hidden layer",
+    "second hidden layer",
+    "final hidden layer",
+    "output layer"
+   ],
+   "n_components": 5,
+   "gaps": [
+    {
+     "question": "What are the weight and bias initialization schemes for the convolutional layers, the fully-connected hidden layer, and the output layer?",
+     "severity": "significant"
+    },
+    {
+     "question": "Are the input pixels normalized (e.g., divided by 255 to range in [0, 1]) before being passed to the network?",
+     "severity": "significant"
+    },
+    {
+     "question": "What are the exact hyperparameters for the RMSProp optimizer (such as learning rate, gradient momentum, squared gradient momentum / decay rate, and epsilon for numerical stability)?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the discount factor (gamma) used in the Q-learning update?",
+     "severity": "significant"
+    },
+    {
+     "question": "What is the reward clipping or reward scaling strategy applied during training?",
+     "severity": "blocking"
+    }
+   ],
+   "n_gaps": 5,
+   "stated": 9,
+   "unverified": 0,
+   "quote_accuracy": 1.0,
+   "recovered": [],
+   "rejected": [],
+   "warnings": []
+  },
+  "1509.02971": {
+   "id": "1509.02971",
+   "area": "rl",
+   "short": "DDPG",
+   "title": "Continuous control with deep reinforcement learning",
+   "tex_chars": 47942,
+   "sections": 11,
+   "units": 2,
+   "algorithm_blocks": 2,
+   "ok": true,
+   "seconds": 57.9,
+   "calls": 18,
+   "components": [
+    "actor function",
+    "critic",
+    "replay buffer",
+    "target network Q'",
+    "batch normalization",
+    "model-predictive controller",
+    "trajectory optimization",
+    "iLQG",
+    "initial rollout",
+    "linear expansion of the dynamics",
+    "quadratic expansion of the cost function",
+    "back-pass"
+   ],
+   "n_components": 12,
+   "gaps": [
+    {
+     "question": "What are the exact reward functions and episode termination conditions for each individual MuJoCo environment?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What are the exact network architectures (number of layers, filter sizes, strides, padding) used for the pixel-based experiments?",
+     "severity": "blocking"
+    }
+   ],
+   "n_gaps": 2,
+   "stated": 11,
+   "unverified": 0,
+   "quote_accuracy": 1.0,
+   "recovered": [
+    "exploration policy",
+    "Ornstein\u2013Uhlenbeck process"
+   ],
+   "rejected": [],
+   "warnings": [
+    "actor function: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "iLQG: depends on 'forward-pass', which was not extracted as a component"
+   ]
+  },
+  "1801.01290": {
+   "id": "1801.01290",
+   "area": "rl",
+   "short": "SAC",
+   "title": "Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor",
+   "tex_chars": 61532,
+   "sections": 25,
+   "units": 20,
+   "algorithm_blocks": 2,
+   "ok": true,
+   "seconds": 117.4,
+   "calls": 36,
+   "components": [
+    "actor network",
+    "infinite-horizon Markov decision process",
+    "state transition probability",
+    "bounded reward",
+    "policy",
+    "soft Bellman backup operator",
+    "value function",
+    "partition function Z^{\u0398_\text{old}}(s)",
+    "soft Q-function",
+    "replay buffer",
+    "target value network",
+    "neural network transformation"
+   ],
+   "n_components": 12,
+   "gaps": [
+    {
+     "question": "What is the weight initialization scheme for the neural network layers?",
+     "severity": "significant"
+    },
+    {
+     "question": "What is the activation function used in the hidden layers of the actor and value networks?",
+     "severity": "significant"
+    },
+    {
+     "question": "How are the mean and covariance of the Gaussian policy parameterized by the neural network outputs?",
+     "severity": "blocking"
+    }
+   ],
+   "n_gaps": 3,
+   "stated": 1,
+   "unverified": 4,
+   "quote_accuracy": 0.2,
+   "recovered": [],
+   "rejected": [],
+   "warnings": [
+    "unit 'Maximum Entropy Reinforcement Learning': giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "consolidation: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "missing-components pass: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "actor network: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "1703.03400": {
+   "id": "1703.03400",
+   "area": "rl",
+   "short": "MAML",
+   "title": "Model-Agnostic Meta-Learning for Fast Adaptation of Deep Networks",
+   "tex_chars": 69855,
+   "sections": 21,
+   "units": 2,
+   "algorithm_blocks": 6,
+   "ok": true,
+   "seconds": 41.2,
+   "calls": 7,
+   "components": [
+    "learner"
+   ],
+   "n_components": 1,
+   "gaps": [
+    {
+     "question": "What architecture, layer types, hidden dimensions, and activation functions were used for the regression and reinforcement learning networks?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the detailed architecture of the convolutional neural network used for MiniImageNet classification?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What is the precise sampling distribution $p(\task)$ for the sinusoid regression tasks (e.g., ranges for amplitude, phase, input values, and evaluation bounds)?",
+     "severity": "significant"
+    },
+    {
+     "question": "What are the specific parameters of the reinforcement learning environments, such as action spaces, observation spaces, horizon lengths $H$, and reward functions (beyond the ant goal velocity bonus)?",
+     "severity": "blocking"
+    }
+   ],
+   "n_gaps": 4,
+   "stated": 12,
+   "unverified": 0,
+   "quote_accuracy": 1.0,
+   "recovered": [],
+   "rejected": [
+    "model"
+   ],
+   "warnings": [
+    "missing-components pass: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "learner: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "1609.02907": {
+   "id": "1609.02907",
+   "area": "graph",
+   "short": "GCN",
+   "title": "Semi-Supervised Classification with Graph Convolutional Networks",
+   "tex_chars": 47038,
+   "sections": 33,
+   "units": 7,
+   "algorithm_blocks": 1,
+   "ok": true,
+   "seconds": 64.7,
+   "calls": 20,
+   "components": [
+    "convolutional layers",
+    "renormalization trick",
+    "Chebyshev filter",
+    "1^{st}-order model",
+    "Single parameter",
+    "1^{st}-order term only",
+    "Multi-layer perceptron",
+    "softmax layer",
+    "residual connections"
+   ],
+   "n_components": 9,
+   "gaps": [
+    {
+     "question": "What weight initialization scheme is used for the network weights?",
+     "severity": "significant"
+    },
+    {
+     "question": "How are the data splits (training, validation, test) constructed for the Cora, Citeseer, and Pubmed semi-supervised classification datasets?",
+     "severity": "significant"
+    },
+    {
+     "question": "What is the exact form of the early stopping criterion used during training?",
+     "severity": "minor"
+    }
+   ],
+   "n_gaps": 3,
+   "stated": 18,
+   "unverified": 0,
+   "quote_accuracy": 1.0,
+   "recovered": [
+    "residual connections"
+   ],
+   "rejected": [
+    "point-wise non-linearity",
+    "TensorFlow",
+    "3-layer Gcn model",
+    "standard GCN model",
+    "model variant",
+    "residual connections"
+   ],
+   "warnings": [
+    "1^{st}-order term only: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "Multi-layer perceptron: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "1710.10903": {
+   "id": "1710.10903",
+   "area": "graph",
+   "short": "GAT",
+   "title": "Graph Attention Networks",
+   "tex_chars": 43632,
+   "sections": 17,
+   "units": 4,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 25.3,
+   "calls": 12,
+   "components": [
+    "masked attention",
+    "multi-head attention",
+    "shared nonlinear multilayer perceptron",
+    "per-node shared multilayer perceptron (MLP) classifier"
+   ],
+   "n_components": 4,
+   "gaps": [
+    {
+     "question": "What is the weight initialization scheme used for the linear transformation matrices (W) and the attention weight vectors (a)?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What are the exact dimensions (number of layers, hidden units per head, and number of heads) used for each specific dataset (Cora, Citeseer, Pubmed, and PPI)?",
+     "severity": "blocking"
+    },
+    {
+     "question": "What activation function sigma is applied after feature aggregation in the intermediate layers?",
+     "severity": "significant"
+    }
+   ],
+   "n_gaps": 3,
+   "stated": 6,
+   "unverified": 1,
+   "quote_accuracy": 0.8571428571428571,
+   "recovered": [],
+   "rejected": [
+    "weight matrix",
+    "softmax function",
+    "LeakyReLU",
+    "label propagation (LP)",
+    "semi-supervised embedding (SemiEmb)",
+    "manifold regularization (ManiReg)",
+    "skip-gram based graph embeddings (DeepWalk)",
+    "iterative classification algorithm (ICA)",
+    "Planetoid",
+    "GCNs",
+    "graph convolutional models utilising higher-order Chebyshev filters",
+    "MoNet model",
+    "GraphSAGE-mean",
+    "GraphSAGE-LSTM",
+    "GraphSAGE-pool"
+   ],
+   "warnings": []
+  },
+  "1706.02216": {
+   "id": "1706.02216",
+   "area": "graph",
+   "short": "GraphSAGE",
+   "title": "Inductive Representation Learning on Large Graphs",
+   "tex_chars": 79310,
+   "sections": 29,
+   "units": 7,
+   "algorithm_blocks": 2,
+   "ok": true,
+   "seconds": 84.1,
+   "calls": 20,
+   "components": [
+    "graph-based loss function",
+    "task-specific objective",
+    "Mean aggregator",
+    "convolutional aggregator",
+    "LSTM aggregator",
+    "Pooling aggregator",
+    "logistic SGDClassifier",
+    "objective functions",
+    "normalization"
+   ],
+   "n_components": 9,
+   "gaps": [],
+   "n_gaps": 0,
+   "stated": 6,
+   "unverified": 0,
+   "quote_accuracy": 1.0,
+   "recovered": [],
+   "rejected": [
+    "GCN-based approach",
+    "DeepWalk",
+    "word2vec",
+    "matrix factorization view"
+   ],
+   "warnings": [
+    "unit 'Embedding generation (i.e., forward propagation) algorithm': giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "graph-based loss function: empty response (finishReason=RECITATION)",
+    "training: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  },
+  "1412.6980": {
+   "id": "1412.6980",
+   "area": "optimisation",
+   "short": "Adam",
+   "title": "Adam: A Method for Stochastic Optimization",
+   "tex_chars": 298,
+   "sections": 0,
+   "units": 0,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 6.6,
+   "calls": 1,
+   "components": [],
+   "n_components": 0,
+   "gaps": [
+    {
+     "question": "What is the exact initialization strategy or scheme for the parameters $\\theta_0$ before optimization begins?",
+     "severity": "significant"
+    },
+    {
+     "question": "How should the small constant $\\epsilon$ (used for numerical stability in the denominator) be chosen when implemented in different numerical precisions like float16 versus float32?",
+     "severity": "significant"
+    },
+    {
+     "question": "Should the bias correction terms be applied before or after computing the parameter update step, and in what exact sequence should the memory buffers $m_t$ and $v_t$ be updated relative to the gradient evaluation?",
+     "severity": "minor"
+    }
+   ],
+   "n_gaps": 3,
+   "stated": 0,
+   "unverified": 0,
+   "quote_accuracy": null,
+   "recovered": [],
+   "rejected": [],
+   "warnings": []
+  },
+  "1502.03167": {
+   "id": "1502.03167",
+   "area": "optimisation",
+   "short": "BatchNorm",
+   "title": "Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift",
+   "tex_chars": 48594,
+   "sections": 16,
+   "units": 2,
+   "algorithm_blocks": 4,
+   "ok": true,
+   "seconds": 20.9,
+   "calls": 12,
+   "components": [
+    "Batch Normalization",
+    "Dropout",
+    "convolution",
+    "max pool",
+    "inception",
+    "avg pool"
+   ],
+   "n_components": 6,
+   "gaps": [
+    {
+     "question": "What is the exact parameter initialization scheme used for the weights of the convolutional and fully connected layers?",
+     "severity": "blocking"
+    }
+   ],
+   "n_gaps": 1,
+   "stated": 5,
+   "unverified": 7,
+   "quote_accuracy": 0.4166666666666667,
+   "recovered": [],
+   "rejected": [],
+   "warnings": []
+  },
+  "1607.06450": {
+   "id": "1607.06450",
+   "area": "optimisation",
+   "short": "LayerNorm",
+   "title": "Layer Normalization",
+   "tex_chars": 56999,
+   "sections": 29,
+   "units": 3,
+   "algorithm_blocks": 0,
+   "ok": true,
+   "seconds": 57.9,
+   "calls": 16,
+   "components": [
+    "generalized linear model",
+    "transfer function",
+    "multi-dimensional GLM",
+    "DRAW model",
+    "differential attention mechanism",
+    "recurrent neural network",
+    "LSTM hidden units",
+    "layer normalization",
+    "Adam optimizer"
+   ],
+   "n_components": 9,
+   "gaps": [],
+   "n_gaps": 0,
+   "stated": 15,
+   "unverified": 0,
+   "quote_accuracy": 1.0,
+   "recovered": [],
+   "rejected": [],
+   "warnings": [
+    "unit 'Modeling binarized MNIST using DRAW': giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex",
+    "consolidation: giving up after 4 attempts - HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota ex"
+   ]
+  }
+ },
+ "stability": {}
+}
