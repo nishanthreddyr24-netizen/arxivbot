@@ -77,6 +77,24 @@ def parse_id(raw: str) -> str:
     raise ValueError(f"could not parse an arXiv id out of {raw!r}")
 
 
+def _load_dotenv(path: Path | None = None) -> None:
+    """Read a local ``.env`` if present. Existing variables win.
+
+    Lives here rather than beside the model config because `cache_dir` needs
+    it as well: a cache path set in `.env` was being ignored by everything
+    that ran before the first model call, which quietly meant two caches.
+    """
+    env = path or Path.cwd() / ".env"
+    if not env.is_file():
+        return
+    for line in env.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, _, value = line.partition("=")
+        os.environ.setdefault(name.strip(), value.strip().strip("\"'"))
+
+
 def cache_dir(*, create: bool = True) -> Path:
     """Where downloaded sources live, following each platform's convention.
 
@@ -85,6 +103,7 @@ def cache_dir(*, create: bool = True) -> Path:
     ``~/Library/Caches/arxivbot``, and elsewhere ``$XDG_CACHE_HOME/arxivbot``
     falling back to ``~/.cache/arxivbot``.
     """
+    _load_dotenv()
     if root := os.environ.get("ARXIVBOT_CACHE"):
         path = Path(root).expanduser()
     elif sys.platform == "win32":

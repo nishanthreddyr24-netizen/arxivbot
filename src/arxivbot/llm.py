@@ -35,7 +35,9 @@ from typing import Any
 
 import httpx
 
-from arxivbot.ingest.fetch import cache_dir
+# _load_dotenv lives in fetch because cache_dir needs it too, and fetch
+# cannot import this module back.
+from arxivbot.ingest.fetch import _load_dotenv, cache_dir
 
 GEMINI_ENDPOINT = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -113,19 +115,6 @@ class LLMConfig:
     def identity(self) -> str:
         """How this model is recorded in a spec's provenance."""
         return f"{self.provider}/{self.model}"
-
-
-def _load_dotenv(path: Path | None = None) -> None:
-    """Read a local ``.env`` if present. Existing variables win."""
-    env = path or Path.cwd() / ".env"
-    if not env.is_file():
-        return
-    for line in env.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        name, _, value = line.partition("=")
-        os.environ.setdefault(name.strip(), value.strip().strip("\"'"))
 
 
 # ---------------------------------------------------------------- schema ----
