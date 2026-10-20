@@ -200,10 +200,15 @@ def put(spec: ImplementationSpec) -> str:
     """Store a freshly extracted spec.
 
     A spec with no components is never a fact about a paper; it is what a
-    failed run looks like. Writing one was silently destroying good work -
-    a reread of the Transformer that came back empty, because the provider
-    refused mid-run, replaced a stored spec holding twelve components, and
-    the paper then looked to every reader like one with nothing in it.
+    failed run looks like, and writing one over a good spec destroys work
+    that cost twenty-odd model calls.
+
+    The incident that prompted this guard turned out to have a different
+    cause than it first appeared: the Transformer's twelve-component spec
+    was overwritten by the test suite, not by a model that refused mid-run -
+    see ``tests/conftest.py``. The guard is still right. An empty inventory
+    is a failure in every layer of this pipeline, and no caller should have
+    to recognise that for itself.
     """
     from arxivbot.storage import SPEC, store
 

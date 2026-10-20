@@ -8,13 +8,6 @@ from arxivbot import store
 from arxivbot.spec import Component, Extractor, ImplementationSpec
 
 
-@pytest.fixture(autouse=True)
-def isolated_cache(tmp_path, monkeypatch):
-    """Point the store at a temp directory so tests never touch the real cache."""
-    monkeypatch.setenv("ARXIVBOT_CACHE", str(tmp_path))
-    yield tmp_path
-
-
 def make_spec(arxiv_id: str, title: str = "T") -> ImplementationSpec:
     # Carries one component because the store refuses to save a spec without
     # any: an empty extraction is a failed run, not a fact about a paper.
@@ -130,8 +123,8 @@ class TestContribution:
 def test_an_empty_spec_is_refused_rather_than_stored(tmp_path, monkeypatch):
     """A failed run must not overwrite a good spec with nothing.
 
-    A reread of the Transformer came back empty because the provider refused
-    mid-run, and storing it replaced a spec holding twelve components. The
+    An empty extraction is what a failure looks like in this pipeline, and
+    storing one replaced a spec holding twelve components with nothing. The
     paper then read, to everyone downstream, as one with nothing in it.
     """
     import pytest
@@ -159,3 +152,35 @@ def test_an_empty_spec_is_refused_rather_than_stored(tmp_path, monkeypatch):
 
     # The good one survived.
     assert len(store.get("1706.03762v7", use_shared=False).spec.components) == 2
+
+
+def test_the_suite_cannot_write_to_the_real_cache(tmp_path, monkeypatch):
+    """The isolation this module used to do for itself, and got wrong.
+
+    Setting ARXIVBOT_CACHE is not enough on its own: the store is memoised in
+    a module global, so one built earlier - pointing at the user's real cache
+    directory - survives the environment change and keeps being used. That is
+    how this suite came to overwrite five specs on a real machine, the
+    Transformer's twelve components among them, with a fixture holding one
+    component called "encoder".
+    """
+    from arxivbot import storage
+    from arxivbot.ingest.fetch import cache_dir
+
+    # Build a store against some other directory first, exactly as an earlier
+    # test module would have.
+    elsewhere = tmp_path / "an-earlier-test"
+    monkeypatch.setenv("ARXIVBOT_CACHE", str(elsewhere))
+    storage.use(None)
+    assert storage.store().root == elsewhere
+
+    # Now the environment changes, as conftest does it for every test.
+    here = tmp_path / "this-test"
+    monkeypatch.setenv("ARXIVBOT_CACHE", str(here))
+    assert storage.store().root == elsewhere, "memoised, which is the hazard"
+
+    storage.use(None)  # the half conftest adds, and the half that matters
+    store.put(make_spec("1706.03762v7"))
+    assert (here / "spec" / "1706.03762v7.json").exists()
+    assert not (elsewhere / "spec" / "1706.03762v7.json").exists()
+    assert cache_dir() == here

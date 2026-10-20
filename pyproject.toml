@@ -25,3 +25,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/arxivbot"]
 artifacts = ["src/arxivbot/assets/*.html"]
+
+[tool.pytest.ini_options]
+# src layout, so the package is not importable from the repo root without
+# this. Tests should run on a clean checkout without an install step.
+pythonpath = ["src"]
+testpaths = ["tests"]
