@@ -195,7 +195,16 @@ def run_stability(results: dict, repeats: int, limit: int | None) -> None:
                     print("\nquota appears exhausted; stopping cleanly.", flush=True)
                     return
                 break
-            runs.append(sorted({c.name.strip().lower() for c in found}))
+            names = sorted({c.name.strip().lower() for c in found})
+            if not names:
+                # An inventory that read nothing is a failed call, not a
+                # reading of the paper. Recording it would put a run that
+                # agrees with nothing into a measure of agreement, which is
+                # how a quota limit turns itself into a finding about
+                # reproducibility.
+                print("    empty inventory - not recorded, stopping", flush=True)
+                break
+            runs.append(names)
             save(results)
             print(f"    run {len(runs)}: {len(runs[-1])} components", flush=True)
 
