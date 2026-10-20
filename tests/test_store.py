@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from arxivbot import store
-from arxivbot.spec import Extractor, ImplementationSpec
+from arxivbot.spec import Component, Extractor, ImplementationSpec
 
 
 @pytest.fixture(autouse=True)
@@ -16,10 +16,13 @@ def isolated_cache(tmp_path, monkeypatch):
 
 
 def make_spec(arxiv_id: str, title: str = "T") -> ImplementationSpec:
+    # Carries one component because the store refuses to save a spec without
+    # any: an empty extraction is a failed run, not a fact about a paper.
     return ImplementationSpec(
         arxiv_id=arxiv_id,
         title=title,
         extractor=Extractor(model="test/model", arxivbot_version="0.1.0"),
+        components=[Component(name="encoder", role="the encoder")],
     )
 
 
@@ -122,3 +125,37 @@ class TestContribution:
     def test_export_without_a_local_spec_raises(self, tmp_path):
         with pytest.raises(FileNotFoundError):
             store.export_for_contribution("0000.00000v1", tmp_path / "repo")
+
+
+def test_an_empty_spec_is_refused_rather_than_stored(tmp_path, monkeypatch):
+    """A failed run must not overwrite a good spec with nothing.
+
+    A reread of the Transformer came back empty because the provider refused
+    mid-run, and storing it replaced a spec holding twelve components. The
+    paper then read, to everyone downstream, as one with nothing in it.
+    """
+    import pytest
+
+    from arxivbot import store
+    from arxivbot.spec import Component, Extractor, ImplementationSpec
+    from arxivbot.storage import DiskStore
+    import arxivbot.storage as storage
+
+    monkeypatch.setattr(storage, "_store", DiskStore(tmp_path))
+
+    def spec_with(*names: str) -> ImplementationSpec:
+        return ImplementationSpec(
+            arxiv_id="1706.03762v7",
+            title="Attention Is All You Need",
+            extractor=Extractor(model="test", arxivbot_version="0"),
+            components=[Component(name=n, role="r") for n in names],
+        )
+
+    store.put(spec_with("encoder", "decoder"))
+    assert len(store.get("1706.03762v7", use_shared=False).spec.components) == 2
+
+    with pytest.raises(store.EmptySpec):
+        store.put(spec_with())
+
+    # The good one survived.
+    assert len(store.get("1706.03762v7", use_shared=False).spec.components) == 2

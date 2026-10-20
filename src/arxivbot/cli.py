@@ -91,7 +91,13 @@ def _spec(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    path = store.put(spec)
+    try:
+        path = store.put(spec)
+    except store.EmptySpec as exc:
+        # Nothing to save, and saying so beats writing an empty spec that
+        # would later read as a paper with nothing in it.
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
     if args.json:
         print(_as_json(spec, report=report, path=path))

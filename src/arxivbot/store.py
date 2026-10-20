@@ -192,9 +192,26 @@ def get(arxiv_id: str, *, use_shared: bool = True) -> Hit | None:
     return get_shared(pinned)
 
 
+class EmptySpec(ValueError):
+    """Refused to store an extraction that found nothing."""
+
+
 def put(spec: ImplementationSpec) -> str:
-    """Store a freshly extracted spec."""
+    """Store a freshly extracted spec.
+
+    A spec with no components is never a fact about a paper; it is what a
+    failed run looks like. Writing one was silently destroying good work -
+    a reread of the Transformer that came back empty, because the provider
+    refused mid-run, replaced a stored spec holding twelve components, and
+    the paper then looked to every reader like one with nothing in it.
+    """
     from arxivbot.storage import SPEC, store
+
+    if not spec.components:
+        raise EmptySpec(
+            f"{spec.arxiv_id}: extraction found no components, so there is "
+            "nothing worth storing - the previous spec, if any, is kept"
+        )
 
     name = f"{_key(spec.arxiv_id)}.json"
     store().put_text(SPEC, name, spec.to_json())
