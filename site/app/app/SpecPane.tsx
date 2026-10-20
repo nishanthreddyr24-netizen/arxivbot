@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import type { Component, SpecResult, Unknown } from "@/lib/api";
 import { ClaimRow, Strip } from "./Evidence";
+import { Prose } from "./TeX";
 import { allClaims, claimsOf, trainingClaims, verified, type Claim } from "./claims";
 
 /** Section label. The one heading style the tool has. */
@@ -156,7 +157,7 @@ function ComponentCard({
               generate &rarr;
             </span>
           </div>
-          <p className="mt-0.5 text-sm text-muted">{component.role}</p>
+          <Prose text={component.role} className="mt-0.5 block text-sm text-muted" />
           {component.depends_on?.length ? (
             <p className="mt-1 font-mono text-2xs text-faint">
               needs {component.depends_on.join(", ")}
@@ -335,8 +336,14 @@ export function SpecPane({
             {spec.unknowns.map((unknown) => (
               <li key={unknown.question} className="border-b border-hairline py-3">
                 <Severity level={unknown.severity} />
-                <p className="mt-1.5 text-base text-ink">{unknown.question}</p>
-                <p className="mt-0.5 text-sm text-muted">{unknown.why_it_matters}</p>
+                <Prose
+                  text={unknown.question}
+                  className="mt-1.5 block text-base text-ink"
+                />
+                <Prose
+                  text={unknown.why_it_matters}
+                  className="mt-0.5 block text-sm text-muted"
+                />
                 {unknown.conventional_default ? (
                   <p className="mt-1.5 border-l border-dashed border-hairline-strong pl-3 font-mono text-2xs text-muted">
                     <span className="text-faint">commonly </span>

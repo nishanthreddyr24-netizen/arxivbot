@@ -42,12 +42,18 @@ export function SourcePane({
     node?.scrollIntoView({ behavior: motion ? "auto" : "smooth", block: "center" });
   }, [focused, found]);
 
-  // Sections, in the order their first located sentence appears.
-  const sections: [string, Passage[]][] = [];
+  // Sections, in the order their first located sentence appears. A paper can
+  // return to a section name it already used - the Transformer has two runs of
+  // "Training" - so this is a run-length grouping and the same title can head
+  // more than one block. Each run therefore carries its own index: keying the
+  // blocks by title alone was a duplicate-key collision, and React is free to
+  // drop one of a colliding pair, which on this pane means quietly losing
+  // located sentences from the only view that claims to show all of them.
+  const sections: [string, number, Passage[]][] = [];
   for (const passage of found) {
     const last = sections[sections.length - 1];
-    if (last && last[0] === passage.section) last[1].push(passage);
-    else sections.push([passage.section, [passage]]);
+    if (last && last[0] === passage.section) last[2].push(passage);
+    else sections.push([passage.section, sections.length, [passage]]);
   }
 
   return (
@@ -58,8 +64,8 @@ export function SourcePane({
         the spec stands on.
       </p>
 
-      {sections.map(([section, group]) => (
-        <section key={section} className="pt-6">
+      {sections.map(([section, at, group]) => (
+        <section key={`${at}-${section}`} className="pt-6">
           <h3 className="sticky top-0 z-10 bg-ground py-2 font-mono text-2xs uppercase tracking-[0.11em] text-muted">
             {section}
           </h3>

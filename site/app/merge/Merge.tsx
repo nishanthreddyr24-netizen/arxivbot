@@ -50,6 +50,91 @@ function PaperField({
   );
 }
 
+/** What is known about one paper's component names. */
+type Parts =
+  | { state: "idle" }
+  | { state: "loading" }
+  | { state: "ready"; names: string[] }
+  | { state: "missing" };
+
+const IDLE: Parts = { state: "idle" };
+
+/**
+ * Fetch one paper's component names into `set`, as a useEffect body.
+ *
+ * Debounced, because this runs on every keystroke of an eleven-character
+ * identifier: typing one id used to fire eleven requests, ten of them for
+ * prefixes that are not papers.
+ */
+function load(id: string, set: (parts: Parts) => void): () => void {
+  const paper = id.trim();
+  if (!paper) {
+    set(IDLE);
+    return () => {};
+  }
+  let cancelled = false;
+  set({ state: "loading" });
+  const timer = setTimeout(() => {
+    componentsOf(paper)
+      .then((d) => {
+        if (!cancelled) set({ state: "ready", names: d.components.map((c) => c.name) });
+      })
+      .catch(() => {
+        if (!cancelled) set({ state: "missing" });
+      });
+  }, 350);
+  return () => {
+    cancelled = true;
+    clearTimeout(timer);
+  };
+}
+
+/** One paper's component names, or a line saying why there are none. */
+function Chips({
+  label,
+  paper,
+  parts,
+  onPick,
+}: {
+  label: string;
+  paper: string;
+  parts: Parts;
+  onPick: (name: string) => void;
+}) {
+  if (parts.state === "idle") return null;
+  const line = "mt-2 max-w-[900px] font-mono text-2xs leading-relaxed text-faint";
+
+  if (parts.state === "loading") {
+    return <p className={line}>{label}: reading…</p>;
+  }
+  if (parts.state === "missing") {
+    return (
+      <p className={line}>
+        <span className="text-red-ink">{label}: nothing stored for {paper.trim()}</span>{" "}
+        — open it in the tool once, then come back.
+      </p>
+    );
+  }
+  if (!parts.names.length) {
+    return <p className={line}>{label}: the stored spec lists no components.</p>;
+  }
+  return (
+    <p className={line}>
+      {label}:{" "}
+      {parts.names.map((name) => (
+        <button
+          key={name}
+          type="button"
+          onClick={() => onPick(name)}
+          className="mr-2 underline underline-offset-4 hover:text-red-ink"
+        >
+          {name}
+        </button>
+      ))}
+    </p>
+  );
+}
+
 export function Merge({
   initialHost,
   initialDonor,
@@ -57,40 +142,28 @@ export function Merge({
   initialHost: string;
   initialDonor: string;
 }) {
-  const [host, setHost] = useState(initialHost);
-  const [donor, setDonor] = useState(initialDonor);
+  // The page is useless empty: with no ids there are no component chips, and
+  // the chips are the only way to learn what a paper calls its parts. So it
+  // opens on the pair the placeholders already suggest, and a link with
+  // ?host=&donor= still wins.
+  const [host, setHost] = useState(initialHost || "1706.03762");
+  const [donor, setDonor] = useState(initialDonor || "1512.03385");
   const [component, setComponent] = useState("");
   const [replaces, setReplaces] = useState("");
 
-  const [donorParts, setDonorParts] = useState<string[] | null>(null);
-  const [hostParts, setHostParts] = useState<string[] | null>(null);
+  const [donorParts, setDonorParts] = useState<Parts>(IDLE);
+  const [hostParts, setHostParts] = useState<Parts>(IDLE);
   const [result, setResult] = useState<MergeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Offering the names is most of the usability here: nobody can guess what
-  // a given paper calls its parts, and a wrong guess is just an error.
-  useEffect(() => {
-    let cancelled = false;
-    if (!donor.trim()) return setDonorParts(null);
-    componentsOf(donor.trim())
-      .then((d) => !cancelled && setDonorParts(d.components.map((c) => c.name)))
-      .catch(() => !cancelled && setDonorParts(null));
-    return () => {
-      cancelled = true;
-    };
-  }, [donor]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!host.trim()) return setHostParts(null);
-    componentsOf(host.trim())
-      .then((d) => !cancelled && setHostParts(d.components.map((c) => c.name)))
-      .catch(() => !cancelled && setHostParts(null));
-    return () => {
-      cancelled = true;
-    };
-  }, [host]);
+  // a given paper calls its parts, and a wrong guess is just an error. When
+  // the lookup fails the page used to go silent and simply show no chips,
+  // which reads as "this paper has no parts" rather than "this paper has not
+  // been extracted" - so the failure is now carried and shown.
+  useEffect(() => load(donor, setDonorParts), [donor]);
+  useEffect(() => load(host, setHostParts), [host]);
 
   const run = useCallback(async () => {
     if (!host.trim() || !donor.trim() || !component.trim()) return;
@@ -162,37 +235,8 @@ export function Merge({
         />
       </section>
 
-      {donorParts?.length ? (
-        <p className="mt-4 max-w-[900px] font-mono text-2xs leading-relaxed text-faint">
-          donor has:{" "}
-          {donorParts.map((name) => (
-            <button
-              key={name}
-              type="button"
-              onClick={() => setComponent(name)}
-              className="mr-2 underline underline-offset-4 hover:text-red-ink"
-            >
-              {name}
-            </button>
-          ))}
-        </p>
-      ) : null}
-
-      {hostParts?.length ? (
-        <p className="mt-2 max-w-[900px] font-mono text-2xs leading-relaxed text-faint">
-          host has:{" "}
-          {hostParts.map((name) => (
-            <button
-              key={name}
-              type="button"
-              onClick={() => setReplaces(name)}
-              className="mr-2 underline underline-offset-4 hover:text-red-ink"
-            >
-              {name}
-            </button>
-          ))}
-        </p>
-      ) : null}
+      <Chips label="donor has" paper={donor} parts={donorParts} onPick={setComponent} />
+      <Chips label="host has" paper={host} parts={hostParts} onPick={setReplaces} />
 
       <button
         type="button"

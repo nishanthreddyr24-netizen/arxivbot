@@ -62,6 +62,16 @@ class PaperMeta:
         return re.sub(r"v\d+$", "", self.arxiv_id)
 
 
+class BadId(ValueError):
+    """The string given is not an arXiv identifier.
+
+    A named class rather than a bare ValueError so callers at the edge - the
+    HTTP API in particular - can answer "that is not an arXiv id" with a 400
+    instead of letting it escape as a 500. A typo is the user's mistake to
+    see, not the server's to hide.
+    """
+
+
 def parse_id(raw: str) -> str:
     """Pull a bare arXiv identifier out of an id, an abs/pdf URL, or a DOI.
 
@@ -74,7 +84,7 @@ def parse_id(raw: str) -> str:
     for pattern in _ID_PATTERNS:
         if match := pattern.search(raw):
             return match.group("id")
-    raise ValueError(f"could not parse an arXiv id out of {raw!r}")
+    raise BadId(f"could not parse an arXiv id out of {raw!r}")
 
 
 def _load_dotenv(path: Path | None = None) -> None:

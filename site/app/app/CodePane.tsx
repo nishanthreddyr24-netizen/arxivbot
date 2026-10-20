@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useCopy } from "@/lib/clipboard";
+
 const GAP = /TODO\(paper-silent\)/;
 
 /**
@@ -31,8 +33,8 @@ export function CodePane({
 
   const scroller = useRef<HTMLPreElement>(null);
   const [cursor, setCursor] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const [shared, setShared] = useState(false);
+  const [copied, copyText] = useCopy();
+  const [shared, shareLink] = useCopy();
 
   // Follow the stream, but only while it is running: once it stops the
   // reader is in charge of where they are looking.
@@ -50,26 +52,14 @@ export function CodePane({
     node?.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
   }
 
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(lines.join("\n"));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1400);
-    } catch {
-      setCopied(false);
-    }
+  function copy() {
+    copyText(lines.join("\n"));
   }
 
   /** The URL already carries the paper and the request; this hands it over
    *  without making anyone go and select the address bar. */
-  async function share() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setShared(true);
-      setTimeout(() => setShared(false), 1400);
-    } catch {
-      setShared(false);
-    }
+  function share() {
+    shareLink(window.location.href);
   }
 
   return (
@@ -163,17 +153,31 @@ export function CodePane({
             onClick={share}
             disabled={streaming}
             title="Copy a link that reopens this paper and this request"
-            className="py-1 hover:text-red-ink disabled:opacity-40"
+            className={[
+              "py-1 hover:text-red-ink disabled:opacity-40",
+              shared === "failed" ? "text-red-ink" : "",
+            ].join(" ")}
           >
-            {shared ? "link copied" : "share"}
+            {shared === "done"
+              ? "link copied"
+              : shared === "failed"
+                ? "could not copy — the link is in the address bar"
+                : "share"}
           </button>
           <button
             type="button"
             onClick={copy}
             disabled={streaming}
-            className="py-1 hover:text-red-ink disabled:opacity-40"
+            className={[
+              "py-1 hover:text-red-ink disabled:opacity-40",
+              copied === "failed" ? "text-red-ink" : "",
+            ].join(" ")}
           >
-            {copied ? "copied" : "copy"}
+            {copied === "done"
+              ? "copied"
+              : copied === "failed"
+                ? "could not copy — select the code instead"
+                : "copy"}
           </button>
         </span>
       </div>

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useCopy } from "@/lib/clipboard";
+
 import { DERIVATIONS } from "./content";
 
 type Props = {
@@ -304,17 +306,7 @@ function CodePanel({
   derived: Band | null;
   silent: Band | null;
 }) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1400);
-    } catch {
-      setCopied(false);
-    }
-  }
+  const [copied, copyCode] = useCopy();
 
   return (
     <div className="flex h-full flex-col">
@@ -324,10 +316,17 @@ function CodePanel({
         </span>
         <button
           type="button"
-          onClick={copy}
-          className="ml-auto shrink-0 font-mono text-xs text-muted hover:text-red-ink"
+          onClick={() => copyCode(code)}
+          className={[
+            "ml-auto shrink-0 font-mono text-xs hover:text-red-ink",
+            copied === "failed" ? "text-red-ink" : "text-muted",
+          ].join(" ")}
         >
-          {copied ? "Copied" : "Copy"}
+          {copied === "done"
+            ? "Copied"
+            : copied === "failed"
+              ? "Could not copy"
+              : "Copy"}
         </button>
       </div>
 

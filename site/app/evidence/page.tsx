@@ -12,6 +12,11 @@ export const metadata = {
 
 const pct = (value: number) => `${Math.round(value * 100)}%`;
 
+/** One decimal, always. A mean of exactly 3 serialises as 3.0 from Python and
+ *  renders as "3" in JavaScript, which put a column of averages on the page
+ *  with the decimals coming and going. */
+const avg = (value: number) => value.toFixed(1);
+
 /** A number and what it means, on the monospace grid the rest of the site uses. */
 function Figure({
   value,
@@ -108,8 +113,8 @@ export default function EvidencePage() {
                   <tr key={row.area} className="border-b border-hairline">
                     <td className="py-2 pr-4 text-ink">{row.area}</td>
                     <td className="py-2 pr-4 text-right text-muted">{row.papers}</td>
-                    <td className="py-2 pr-4 text-right text-muted">{row.components}</td>
-                    <td className="py-2 pr-4 text-right text-muted">{row.gaps}</td>
+                    <td className="py-2 pr-4 text-right text-muted">{avg(row.components)}</td>
+                    <td className="py-2 pr-4 text-right text-muted">{avg(row.gaps)}</td>
                     <td className="py-2 text-right text-red-ink">{pct(row.quotes)}</td>
                   </tr>
                 ))}

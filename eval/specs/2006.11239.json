@@ -1,0 +1,537 @@
+{
+ "arxiv_id": "2006.11239v2",
+ "title": "Denoising Diffusion Probabilistic Models",
+ "extractor": {
+  "schema_version": "0.1",
+  "model": "gemini/gemini-flash-lite-latest",
+  "arxivbot_version": "0.1.0",
+  "extracted_at": "2026-10-20T09:21:47.015433Z",
+  "notes": null
+ },
+ "summary": "",
+ "components": [
+  {
+   "name": "forward process",
+   "role": "Defines the forward process with fixed constant variances $\\beta_t$ and no learnable parameters.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [
+    {
+     "latex": "L_{t-1} = \\Eb{q}{ \\frac{1}{2\\sigma_t^2} \\|\\tilde\\bmu_t(\\bx_t,\\bx_0) - \\bmu_theta(\\bx_t, t)\\|^2 } + C",
+     "description": "The variational bound term linking the forward process posterior mean to the reverse process mean.",
+     "provenance": null,
+     "implements": "forward process"
+    },
+    {
+     "latex": "L_{t-1} - C =\\Eb{\\bx_0, \\bepsilon}{ \\frac{1}{2\\sigma_t^2} \\left\\| \\frac{1}{\\sqrt{\\alpha_t}}\\left( \\bx_t(\\bx_0,\\bepsilon) - \\frac{\\beta_t}{\\sqrt{1-\\bar\\alpha_t}}\\bepsilon \\right) - \\bmu_theta(\\bx_t(\\bx_0,\\bepsilon), t) \\right\\| ^2 }",
+     "description": "Expanded variational bound term expressing the squared norm in terms of epsilon.",
+     "provenance": null,
+     "implements": "forward process"
+    },
+    {
+     "latex": "\\bmu_theta(\\bx_t, t) = \\tilde\\bmu_t\\left(\\bx_t, \\frac{1}{\\sqrt{\\bar\\alpha_t}} (\\bx_t - \\sqrt{1-\\bar\\alpha_t}\\bepsilon_theta(\\bx_t)) \\right) = \\frac{1}{\\sqrt{\\alpha_t}}\\left( \\bx_t - \\frac{\\beta_t}{\\sqrt{1-\\bar\\alpha_t}} \\bepsilon_theta(\\bx_t, t) \\right)",
+     "description": "Parameterization of the reverse process mean function approximator.",
+     "provenance": {
+      "section": "Forward process and $L_T$",
+      "quote": "\\bmu_\\theta(\\bx_t, t) = \\tilde\\bmu_t\\!\\left(\\bx_t, \\frac{1}{\\sqrt{\\bar\\alpha_t}} (\\bx_t - \\sqrt{1-\\bar\\alpha_t}\\bepsilon_\\theta(\\bx_t)) \\right) = \\frac{1}{\\sqrt{\\alpha_t}}\\left( \\bx_t - \\frac{\\beta_t}{\\sqrt{1-\\bar\\alpha_t}} \\bepsilon_\\theta(\\bx_t, t) \\right)",
+      "char_start": 14721,
+      "char_end": 14969,
+      "label": null
+     },
+     "implements": "forward process"
+    },
+    {
+     "latex": "\\Eb{\\bx_0, \\bepsilon}{ \\frac{\\beta_t^2}{2\\sigma_t^2 \\alpha_t (1-\\bar\\alpha_t)} \\left\\| \\bepsilon - \\bepsilon_theta(\\sqrt{\\bar\\alpha_t} \\bx_0 + \\sqrt{1-\\bar\\alpha_t}\\bepsilon, t) \\right\\| ^2}",
+     "description": "Simplified variational bound term resembling denoising score matching.",
+     "provenance": null,
+     "implements": "forward process"
+    },
+    {
+     "latex": "p_\\theta(\\bx_0 | \\bx_1) = \\prod_{i=1}^D \\int_{\\delta_{-}(x_0^i)}^{\\delta_{+}(x_0^i)} \\mathcal{N}(x; \\mu_^i(\\bx_1, 1), \\sigma_1^2) \\, dx",
+     "description": "Independent discrete decoder derived from the Gaussian for the last term of the reverse process.",
+     "provenance": {
+      "section": "Forward process and $L_T$",
+      "quote": "p_\\theta(\\bx_0 | \\bx_1) = \\prod_{i=1}^D \\int_{\\delta_{-}(x_0^i)}^{\\delta_{+}(x_0^i)} \\mathcal{N}(x; \\mu_\\theta^i(\\bx_1, 1), \\sigma_1^2) \\, dx",
+      "char_start": 18947,
+      "char_end": 19089,
+      "label": null
+     },
+     "implements": "forward process"
+    },
+    {
+     "latex": "\\delta_{+}(x) = \\begin{cases} \\infty & \\text{if}\\ x=1 \\\\ x+\\frac{1}{255} & \\text{if}\\ x < 1 \\end{cases} \\qquad \\delta_{-}(x) = \\begin{cases} -\\infty & \\text{if}\\ x=-1 \\\\ x-\\frac{1}{255} & \\text{if}\\ x > -1 \\end{cases}",
+     "description": "Integration boundaries for the discrete decoder.",
+     "provenance": {
+      "section": "Forward process and $L_T$",
+      "quote": "\\delta_{+}(x) = \\begin{cases} \\infty & \\text{if}\\ x=1 \\\\ x+\\frac{1}{255} & \\text{if}\\ x < 1 \\end{cases} \\qquad \\delta_{-}(x) = \\begin{cases} -\\infty & \\text{if}\\ x=-1 \\\\ x-\\frac{1}{255} & \\text{if}\\ x > -1 \\end{cases}",
+      "char_start": 19129,
+      "char_end": 19338,
+      "label": null
+     },
+     "implements": "forward process"
+    }
+   ],
+   "hyperparameters": [
+    {
+     "name": "beta_t",
+     "value": null,
+     "unit": null,
+     "applies_to": null,
+     "confidence": "stated",
+     "provenance": {
+      "section": "Forward process and $L_T$",
+      "quote": "We ignore the fact that the forward process variances \\beta_t are learnable by reparameterization and instead fix them to constants",
+      "char_start": 11776,
+      "char_end": 11909,
+      "label": null
+     },
+     "notes": null
+    }
+   ],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "denoising",
+    "norm_position": "unspecified",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Forward process and $L_T$",
+    "quote": "Defines the forward process with fixed constant variances $\\beta_t$ and no learnable parameters.",
+    "char_start": 11720,
+    "char_end": 12101,
+    "label": null
+   }
+  },
+  {
+   "name": "reverse process",
+   "role": "The reverse process parameterized as a Gaussian distribution $\\mathcal{N}(\\bx_{t-1}; \\bmu_\\theta(\\bx_t, t), \\bSigma_\\theta(\\bx_t, t))$ for $1 < t \\leq T$.",
+   "inputs": [
+    {
+     "name": "bx_t",
+     "shape": [],
+     "dtype": null,
+     "description": "noisy image at timestep t"
+    },
+    {
+     "name": "t",
+     "shape": [],
+     "dtype": null,
+     "description": "timestep index"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "bx_{t-1}",
+     "shape": [],
+     "dtype": null,
+     "description": "sample at previous timestep t-1"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "L_{t-1} = \\Eb{q}{ \\frac{1}{2\\sigma_t^2} \\|\\tilde\\bmu_t(\\bx_t,\\bx_0) - \\bmu_theta(\\bx_t, t)\\|^2 } + C",
+     "description": "Expression for the variational bound term L_{t-1}.",
+     "provenance": null,
+     "implements": "reverse process"
+    },
+    {
+     "latex": "L_{t-1} - C = \\Eb{\\bx_0, \\bepsilon}{ \\frac{1}{2\\sigma_t^2} \\left\\| \\tilde\\bmu_t\\!\\left(\\bx_t(\\bx_0, \\bepsilon), \\frac{1}{\\sqrt{\\bar\\alpha_t}} (\\bx_t(\\bx_0, \\bepsilon) - \\sqrt{1-\\bar\\alpha_t}\\bepsilon) \\right) - \\bmu_\\theta(\\bx_t(\\bx_0, \\bepsilon), t) \\right\\|^2 }",
+     "description": "Expanded variational bound term L_{t-1} - C using reparameterized x_t.",
+     "provenance": null,
+     "implements": "reverse process"
+    },
+    {
+     "latex": "L_{t-1} - C = \\Eb{\\bx_0, \\bepsilon}{ \\frac{1}{2\\sigma_t^2} \\left\\| \\frac{1}{\\sqrt{\\alpha_t}}\\left( \\bx_t(\\bx_0,\\bepsilon) - \\frac{\\beta_t}{\\sqrt{1-\\bar\\alpha_t}}\\bepsilon \\right) - \\bmu_\\theta(\\bx_t(\\bx_0,\\bepsilon), t) \\right\\|^2 }",
+     "description": "Further expansion of the variational bound term.",
+     "provenance": null,
+     "implements": "reverse process"
+    },
+    {
+     "latex": "\\bmu_\\theta(\\bx_t, t) = \\tilde\\bmu_t\\!\\left(\\bx_t, \\frac{1}{\\sqrt{\\bar\\alpha_t}} (\\bx_t - \\sqrt{1-\\bar\\alpha_t}\\bepsilon_\\theta(\\bx_t)) \\right) = \\frac{1}{\\sqrt{\\alpha_t}}\\left( \\bx_t - \\frac{\\beta_t}{\\sqrt{1-\\bar\\alpha_t}} \\bepsilon_\\theta(\\bx_t, t) \\right)",
+     "description": "Parameterization of the reverse process mean function approximator.",
+     "provenance": null,
+     "implements": "reverse process"
+    },
+    {
+     "latex": "\\Eb{\\bx_0, \\bepsilon}{ \\frac{\\beta_t^2}{2\\sigma_t^2 \\alpha_t (1-\\bar\\alpha_t)} \\left\\| \\bepsilon - \\bepsilon_\\theta(\\sqrt{\\bar\\alpha_t} \\bx_0 + \\sqrt{1-\\bar\\alpha_t}\\bepsilon, t) \\right\\|^2}",
+     "description": "Simplified variational bound objective resembling denoising score matching.",
+     "provenance": null,
+     "implements": "reverse process"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "permutation_invariant",
+    "regime": "self_supervised",
+    "norm_position": "unspecified",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Forward process and $L_T$",
+    "quote": "The reverse process parameterized as a Gaussian distribution $\\mathcal{N}(\\bx_{t-1}; \\bmu_\\theta(\\bx_t, t), \\bSigma_\\theta(\\bx_t, t))$ for $1 < t \\leq T$.",
+    "char_start": 11720,
+    "char_end": 12101,
+    "label": null
+   }
+  },
+  {
+   "name": "noise prediction neural network",
+   "role": "It is a function approximator trained to predict noise from the noisy input at time step t.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [
+    {
+     "latex": "L_t = \\mathbb{E}_{q} \\left[ \\frac{1}{2\\sigma_t^2} \\|\\tilde{\\mathbf{mu}}_t(\\mathbf{x}_t, \\mathbf{x}_0) - \\mathbf{mu}_\\theta(\\mathbf{x}_t, t)\\|^2 \\right] + C",
+     "description": "Variational bound term for the reverse process.",
+     "provenance": null,
+     "implements": "noise prediction neural network"
+    },
+    {
+     "latex": "\\mathbf{mu}_\\theta(\\mathbf{x}_t, t) = \\tilde{\\mathbf{mu}}_t\\left(\\mathbf{x}_t, \\frac{1}{\\sqrt{\\bar{\\alpha}_t}} (\\mathbf{x}_t - \\sqrt{1-\\bar{\\alpha}_t}\\mathbf{\\epsilon}_\\theta(\\mathbf{x}_t)) \\right) = \\frac{1}{\\sqrt{\\alpha_t}}\\left( \\mathbf{x}_t - \\frac{\\beta_t}{\\sqrt{1-\\bar{\\alpha}_t}} \\mathbf{\\epsilon}_\\theta(\\mathbf{x}_t, t) \\right)",
+     "description": "Parameterization of the reverse process mean using the noise prediction function approximator.",
+     "provenance": null,
+     "implements": "noise prediction neural network"
+    },
+    {
+     "latex": "L_{\\text{simple}}(\\theta) \\defeq \\mathbb{E}_{t, \\mathbf{x}_0, \\mathbf{\\epsilon}}{ \\left\\| \\mathbf{\\epsilon} - \\mathbf{\\epsilon}_\\theta(\\sqrt{\\bar{\\alpha}_t} \\mathbf{x}_0 + \\sqrt{1-\\bar{\\alpha}_t}\\mathbf{\\epsilon}, t) \\right\\|^2}",
+     "description": "Simplified training objective for the noise prediction neural network.",
+     "provenance": null,
+     "implements": "noise prediction neural network"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "denoising",
+    "norm_position": "unspecified",
+    "notes": null
+   },
+   "provenance": null
+  },
+  {
+   "name": "independent discrete decoder",
+   "role": "Sets the last term of the reverse process to obtain discrete log likelihoods.",
+   "inputs": [
+    {
+     "name": "x_1",
+     "shape": [
+      "batch",
+      "D"
+     ],
+     "dtype": null,
+     "description": "Input at the final reverse step"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "p_theta(x_0 | x_1)",
+     "shape": [
+      "batch"
+     ],
+     "dtype": null,
+     "description": "Independent discrete decoder probability"
+    }
+   ],
+   "equations": [
+    {
+     "latex": "p_\\theta(\\bx_0 | \\bx_1) = \\frac{D}{\\prod_{i=1}} \\int_{\\delta_{-}(x_0^i)}^{\\delta_{+}(x_0^i)} \\mathcal{N}(x; \\mu_\\theta^i(\\bx_1, 1), \\sigma_1^2) \\, dx",
+     "description": "Sets the last term of the reverse process to obtain discrete log likelihoods.",
+     "provenance": {
+      "section": "Data scaling, reverse process decoder, and $L_0$",
+      "quote": "To obtain discrete log likelihoods, we set the last term of the reverse process to an independent discrete decoder derived from the Gaussian \\mathcal{N}(\\bx_0 ; \\bmu_\\theta(\\bx_1, 1), \\sigma_1^2 \\bI):",
+      "char_start": 18717,
+      "char_end": 18919,
+      "label": null
+     },
+     "implements": "independent discrete decoder"
+    },
+    {
+     "latex": "\\delta_{+}(x) = \\begin{cases} \\infty & \\text{if}\\ x=1 \\\\ x+\\frac{1}{255} & \\text{if}\\ x < 1 \\end{cases} \\qquad \\delta_{-}(x) = \\begin{cases} -\\infty & \\text{if}\\ x=-1 \\\\ x-\\frac{1}{255} & \\text{if}\\ x > -1 \\end{cases}",
+     "description": "Integration limits for the independent discrete decoder based on scaled integer pixel values.",
+     "provenance": null,
+     "implements": "independent discrete decoder"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [
+    "reverse process"
+   ],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "self_supervised",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Data scaling, reverse process decoder, and $L_0$",
+    "quote": "Sets the last term of the reverse process to obtain discrete log likelihoods.",
+    "char_start": 18364,
+    "char_end": 20053,
+    "label": null
+   }
+  },
+  {
+   "name": "simple objective",
+   "role": "It is a variant of the variational bound used to train the model.",
+   "inputs": [],
+   "outputs": [],
+   "equations": [
+    {
+     "latex": "L_\\mathrm{simple}(\\theta) \\defeq \\Eb{t, \\bx_0, \\bepsilon}{ \\left\\| \\bepsilon - \\bepsilon_\\theta(\\sqrt{\\bar\\alpha_t} \\bx_0 + \\sqrt{1-\\bar\\alpha_t}\\bepsilon, t) \\right\\|²}",
+     "description": "Simplified training objective variant of the variational bound.",
+     "provenance": {
+      "section": "Simplified training objective",
+      "quote": "However, we found it beneficial to sample quality (and simpler to implement) to train on the following variant of the variational bound: \n \\begin{align}\n L_\\mathrm{simple}(\\theta) \\defeq \\Eb{t, \\bx_0, \\bepsilon}{ \\left\\| \\bepsilon - \\bepsilon_\\theta(\\sqrt{\\bar\\alpha_t} \\bx_0 + \\sqrt{1-\\bar\\alpha_t}\\bepsilon, t) \\right\\|^2} \\label{eq:training_objective_simple}\n \\end{align}",
+      "char_start": 20393,
+      "char_end": 20763,
+      "label": null
+     },
+     "implements": "simple objective"
+    }
+   ],
+   "hyperparameters": [],
+   "depends_on": [],
+   "assumptions": {
+    "modality": "image",
+    "ordering": "ordered",
+    "regime": "denoising",
+    "norm_position": "none",
+    "notes": null
+   },
+   "provenance": {
+    "section": "Simplified training objective",
+    "quote": "It is a variant of the variational bound used to train the model.",
+    "char_start": 20053,
+    "char_end": 22170,
+    "label": null
+   }
+  }
+ ],
+ "hyperparameters": [],
+ "training": {
+  "objective": "L_simple(\\theta) \\defeq \\Eb{t, \\bx_0, \\bepsilon}{ \\left\\| \\bepsilon - \\bepsilon_\\theta(\\sqrt{\\bar\\alpha_t} \\bx_0 + \\sqrt{1-\\bar\\alpha_t}\\bepsilon, t) \\right\\|^2}",
+  "optimizer": "Adam",
+  "schedule": "linear",
+  "hyperparameters": [
+   {
+    "name": "T",
+    "value": "1000",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We set $T=1000$ for all experiments so that the number of neural network evaluations needed during sampling matches previous work",
+     "char_start": 22217,
+     "char_end": 22346,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "beta_1",
+    "value": "10^{-4}",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We set the forward process variances to constants increasing linearly from $\\beta_1 = 10^{-4}$ to $\\beta_T = 0.02$.",
+     "char_start": 22388,
+     "char_end": 22503,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "beta_T",
+    "value": "0.02",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We set the forward process variances to constants increasing linearly from $\\beta_1 = 10^{-4}$ to $\\beta_T = 0.02$.",
+     "char_start": 22388,
+     "char_end": 22503,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "dropout rate",
+    "value": "0.1",
+    "unit": null,
+    "applies_to": "CIFAR10",
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We set the dropout rate on CIFAR10 to $0.1$ by sweeping over the values \\{0.1, 0.2, 0.3, 0.4\\}.",
+     "char_start": 50163,
+     "char_end": 50260,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "dropout rate",
+    "value": "0",
+    "unit": null,
+    "applies_to": "other datasets",
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We set dropout rate on the other datasets to zero without sweeping.",
+     "char_start": 50420,
+     "char_end": 50487,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "learning rate",
+    "value": "2 \\times 10^{-4}",
+    "unit": null,
+    "applies_to": "CIFAR10",
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We set the learning rate to $2 \\times 10^{-4}$ without any sweeping, and we lowered it to $2 \\times 10^{-5}$ for the $256\\times256$ images, which seemed unstable to train with the larger learning rate.",
+     "char_start": 50914,
+     "char_end": 51115,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "learning rate",
+    "value": "2 \\times 10^{-5}",
+    "unit": null,
+    "applies_to": "256x256 images",
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We set the learning rate to $2 \\times 10^{-4}$ without any sweeping, and we lowered it to $2 \\times 10^{-5}$ for the $256\\times256$ images, which seemed unstable to train with the larger learning rate.",
+     "char_start": 50914,
+     "char_end": 51115,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "batch size",
+    "value": "128",
+    "unit": null,
+    "applies_to": "CIFAR10",
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We set the batch size to 128 for CIFAR10 and 64 for larger images.",
+     "char_start": 51126,
+     "char_end": 51192,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "batch size",
+    "value": "64",
+    "unit": null,
+    "applies_to": "larger images",
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We set the batch size to 128 for CIFAR10 and 64 for larger images.",
+     "char_start": 51126,
+     "char_end": 51192,
+     "label": null
+    },
+    "notes": null
+   },
+   {
+    "name": "EMA decay factor",
+    "value": "0.9999",
+    "unit": null,
+    "applies_to": null,
+    "confidence": "stated",
+    "provenance": {
+     "section": "Training",
+     "quote": "We used EMA on model parameters with a decay factor of 0.9999.",
+     "char_start": 51239,
+     "char_end": 51301,
+     "label": null
+    },
+    "notes": null
+   }
+  ],
+  "datasets": [
+   "CIFAR10",
+   "CelebA-HQ",
+   "LSUN Bedroom",
+   "LSUN Cat",
+   "LSUN Church"
+  ],
+  "hardware": "TPU v3-8",
+  "equations": []
+ },
+ "unknowns": [
+  {
+   "question": "What are the exact channel counts, filter sizes, number of feature maps per resolution level, and downsampling/upsampling operators used in the Wide ResNet / U-Net backbone?",
+   "why_it_matters": "A wrong architectural choice would change model capacity, preventing the model from fitting the dataset or matching the reported parameter counts (e.g., 35.7 million for CIFAR10, 114 million for LSUN/CelebA-HQ).",
+   "severity": "significant",
+   "searched": [
+    "Diffusion models and denoising autoencoders"
+   ],
+   "conventional_default": "Standard U-Net with Wide ResNet blocks",
+   "applies_to": "neural network architecture"
+  },
+  {
+   "question": "How are self-attention blocks configured (number of heads, key/query/value projections, normalization placement within the self-attention block) at the 16x16 resolution?",
+   "why_it_matters": "Incorrect attention configuration can alter the flow of information across spatial locations, leading to suboptimal sample quality and failure to capture long-range dependencies.",
+   "severity": "minor",
+   "searched": [
+    "Diffusion models and denoising autoencoders"
+   ],
+   "conventional_default": "Single-head or multi-head dot-product attention",
+   "applies_to": "self-attention blocks"
+  },
+  {
+   "question": "What is the exact architectural layout and number of channels for the larger variant of the LSUN Bedroom model with approximately 256 million parameters?",
+   "why_it_matters": "Without knowing how the filter count was increased to reach ~256M parameters, a researcher cannot replicate the reported 4.90 FID score for the large model.",
+   "severity": "significant",
+   "searched": [
+    "Diffusion models and denoising autoencoders"
+   ],
+   "conventional_default": null,
+   "applies_to": "LSUN Bedroom large model"
+  },
+  {
+   "question": "What is the learning rate schedule or warmup/decay strategy used during training, beyond the fixed base learning rate?",
+   "why_it_matters": "Training stability and final convergence can be heavily dependent on learning rate warmups or decay schedules, potentially leading to divergence or suboptimal optima if not matched.",
+   "severity": "minor",
+   "searched": [
+    "Diffusion models and denoising autoencoders"
+   ],
+   "conventional_default": "Constant learning rate with Adam",
+   "applies_to": "optimizer"
+  },
+  {
+   "question": "What are the exact weight initialization schemes used for the convolutional, dense, and embedding layers in the neural network?",
+   "why_it_matters": "Poor weight initialization can cause vanishing or exploding gradients early in training, preventing the model from successfully starting optimization.",
+   "severity": "minor",
+   "searched": [
+    "Diffusion models and denoising autoencoders"
+   ],
+   "conventional_default": "Xavier / Glorot or He initialization",
+   "applies_to": "neural network initialization"
+  }
+ ],
+ "official_repo": "https://github.com/hojonathanho/diffusion"
+}

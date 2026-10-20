@@ -85,6 +85,12 @@ export function Tool({ paper, query }: { paper: string; query: string }) {
           if (state.state === "done") {
             setResult(state as SpecResult);
             setPhase("ready");
+            // The spec is here, so there is nothing left to time. Without
+            // this the ticker kept firing once a second for the life of the
+            // page - the cleanup only runs when the paper changes - which
+            // re-rendered the whole tool every second, for a number nobody
+            // was still looking at.
+            clearInterval(ticker);
             return;
           }
           await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -143,7 +149,12 @@ export function Tool({ paper, query }: { paper: string; query: string }) {
       } catch (cause) {
         if (cause instanceof ApiError && cause.detail && typeof cause.detail === "object") {
           const detail = cause.detail as { did_you_mean?: string[]; available?: string[] };
-          setSuggestions([...(detail.did_you_mean ?? []), ...(detail.available ?? [])]);
+          // The two lists overlap - a near miss is also an available
+          // component - so concatenating them showed "encoder" twice and
+          // handed React the same key twice.
+          setSuggestions([
+            ...new Set([...(detail.did_you_mean ?? []), ...(detail.available ?? [])]),
+          ]);
           setCode("");
         } else {
           setCode(`# ${cause instanceof Error ? cause.message : String(cause)}`);

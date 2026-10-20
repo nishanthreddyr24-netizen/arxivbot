@@ -27,9 +27,9 @@ from pathlib import Path
 # Importable both as a Vercel function and from a checkout.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from fastapi import FastAPI, HTTPException, Query  # noqa: E402
+from fastapi import FastAPI, HTTPException, Query, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import StreamingResponse  # noqa: E402
+from fastapi.responses import JSONResponse, StreamingResponse  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from arxivbot import store  # noqa: E402
@@ -37,7 +37,7 @@ from arxivbot.deviation import banner as deviation_banner  # noqa: E402
 from arxivbot.deviation import check as deviation_check  # noqa: E402
 from arxivbot.extract import extract  # noqa: E402
 from arxivbot.ingest import build_document, load  # noqa: E402
-from arxivbot.ingest.fetch import FetchError, fetch_metadata  # noqa: E402
+from arxivbot.ingest.fetch import BadId, FetchError, fetch_metadata  # noqa: E402
 from arxivbot.ingest.latex import UnpackError  # noqa: E402
 from arxivbot.llm import CacheMiss, LLMConfig, LLMError  # noqa: E402
 from arxivbot.select import did_you_mean, select, suggest  # noqa: E402
@@ -59,6 +59,18 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(BadId)
+def _unparseable_id(request: Request, exc: BadId) -> JSONResponse:
+    """A typo in the id is the caller's mistake, so say so with a 400.
+
+    Four endpoints were answering 500 for `not-a-real-id`, which told the
+    reader the server was broken when the id simply was not one. The handler
+    is registered once rather than wrapped around each endpoint, so an
+    endpoint added later cannot forget it.
+    """
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
 
 STAGES = ("fetch", "parse", "read", "consolidate", "gaps")
 

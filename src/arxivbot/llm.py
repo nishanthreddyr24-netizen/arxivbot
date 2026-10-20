@@ -344,6 +344,62 @@ def complete(
     return text
 
 
+# LaTeX and JSON disagree about the backslash, and JSON wins silently.
+#
+# A model answering with "$\beta_t$" inside a JSON string has written an
+# escape, not a letter: the parser reads \b and hands back a backspace
+# character followed by "eta_t". The same goes for \f (\frac), \t (\theta,
+# \tilde) and \r. Nothing raises - the reply is valid JSON - so the ruined
+# text goes straight into the spec. Every equation in the diffusion paper was
+# corrupt this way, and so were the quotes, which then could not be located
+# in the source and were reported as claims the paper never supported.
+#
+# Backspace and form feed never belong in a sentence from a paper, so they
+# are always this bug. Tab and carriage return can be real whitespace - two
+# tabs between columns look exactly like a damaged \tau - so those are only
+# repaired when what follows spells out a LaTeX command that actually starts
+# with that letter. Guessing from "a letter follows" would corrupt tabular
+# text to fix typeset text, which is a trade in the wrong direction.
+_ALWAYS_LATEX = {"\x08": "b", "\x0c": "f"}
+_AMBIGUOUS_LATEX = {
+    "\t": ("t", (
+        "heta", "ilde", "imes", "ext", "extbf", "extit", "extrm", "au", "op",
+        "o", "frac", "riangle", "imes", "anh", "race", "ag",
+    )),
+    "\r": ("r", (
+        "ho", "ight", "ightarrow", "angle", "m", "ef", "eal", "brace", "brack",
+    )),
+}
+
+
+def repair_latex_escapes(value: str) -> str:
+    """Put back the backslash that JSON ate. See the note above."""
+    out: list[str] = []
+    for index, char in enumerate(value):
+        if char in _ALWAYS_LATEX:
+            out.append("\\" + _ALWAYS_LATEX[char])
+            continue
+        if char in _AMBIGUOUS_LATEX:
+            letter, commands = _AMBIGUOUS_LATEX[char]
+            rest = value[index + 1 :]
+            if any(rest.startswith(word) for word in commands):
+                out.append("\\" + letter)
+                continue
+        out.append(char)
+    return "".join(out)
+
+
+def _repair(value):
+    """`repair_latex_escapes` over every string in a parsed JSON tree."""
+    if isinstance(value, str):
+        return repair_latex_escapes(value)
+    if isinstance(value, dict):
+        return {k: _repair(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_repair(v) for v in value]
+    return value
+
+
 def complete_json(
     prompt: str,
     model_type: type,
@@ -355,7 +411,7 @@ def complete_json(
     schema = gemini_schema(model_type)
     raw = complete(prompt, system=system, schema=schema, config=config)
     try:
-        return model_type.model_validate_json(raw)
+        return model_type.model_validate(_repair(json.loads(raw)))
     except ValueError as exc:
         raise LLMError(
             f"{model_type.__name__} validation failed: {str(exc)[:400]}"
