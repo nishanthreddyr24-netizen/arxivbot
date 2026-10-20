@@ -250,6 +250,13 @@ The headline numbers: 28 of 30 extracted, 2 refused for shipping a PDF wrapped
 in LaTeX, and 76% of claims marked as stated had their sentence located
 character-for-character in the source.
 
+That 76% is a floor, and the corpus has not been re-run since. LaTeX returned
+inside the model's JSON was losing its backslashes — `\beta` is a valid JSON
+escape, so the parser handed back a control character — which left the quote
+unfindable and published a supported claim as an unsupported one. It is fixed;
+the one paper re-extracted since went from 80% of its quotes located to 100%.
+How much of the remaining 24% was this, nobody knows yet.
+
 The number that matters most is one the corpus produced about itself. Twenty
 gap reports were audited by hand and seven named things the paper states
 plainly, so a third of the feature was wrong. Gaps are now challenged against

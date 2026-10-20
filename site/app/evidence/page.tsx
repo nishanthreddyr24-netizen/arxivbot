@@ -125,7 +125,10 @@ export default function EvidencePage() {
             Quote verification is the share of claims marked as stated whose
             sentence was then located character-for-character in the submitted
             source. It varies widely by field, and the low end is a known
-            weakness rather than a rounding error.
+            weakness rather than a rounding error. Part of it was also a bug,
+            found after this run and described under Still unresolved: these
+            columns understate the tool as it stands, by a margin nobody has
+            measured.
           </p>
           {corpus.gaps_unread.length > 0 ? (
             <p className="mt-3 max-w-[46rem] font-mono text-2xs leading-relaxed text-red-ink">
@@ -280,6 +283,7 @@ export default function EvidencePage() {
             {[
               "Extraction is not reproducible. The same paper does not always yield the same components, and the agreement across repeated runs has not been measured.",
               "Quote verification ranges widely by field. At the low end, close to half of the provenance could not be located.",
+              "These numbers were measured before a parser bug was found. LaTeX returned inside JSON was losing its backslashes — \\beta became a control character — which left the quote unfindable in the source and published a supported claim as an unsupported one. The one paper re-extracted since went from 80% of quotes located to 100%. The corpus has not been re-run, so every quote figure on this page should be read as a floor, by an unknown margin.",
               "Precision is loose. Things a paper compares against can be extracted as if the paper had built them.",
               "The gap audit is one person's judgement on twenty samples, not ground truth, and two runs of the checker disagreed on three of them.",
             ].map((line) => (
